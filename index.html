@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FinTech Colombia 5.0 — Dashboard Interactivo</title>
+  <meta name="description" content="Dashboard interactivo del ecosistema FinTech Colombia. Taller Colombia 5.0 🇨🇴 — Dashboard Interactivo FinTech"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --purple: #7012B0;
+      --purple2: #8B2FC9;
+      --purple-light: #9B4DCA;
+      --green: #19FF6C;
+      --green2: #14D957;
+      --lavender: #F3E8FF;
+      --lavender2: #E9D5FF;
+      --dark: #0F0A1E;
+      --dark2: #1a1030;
+      --card: #1E1535;
+      --text: #F2F2F2;
+      --muted: #9CA3AF;
+      --border: rgba(112,18,176,0.3);
+      --glow: rgba(112,18,176,0.4);
+      --red: #EF4444;
+      --amber: #F59E0B;
+      --blue: #3B82F6;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BG mesh */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(112,18,176,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(25,255,108,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 60% at 50% 50%, rgba(139,47,201,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* HEADER */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,10,30,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      color: var(--green);
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .logo span { color: var(--purple-light); }
+
+    nav { display: flex; gap: 0.25rem; }
+    nav a {
+      font-size: 0.8rem; font-weight: 500;
+      color: var(--muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: rgba(112,18,176,0.25);
+    }
+    .header-info {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+    .header-info .sub { color: var(--muted); }
+
+    /* Hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 8px;
+      z-index: 200;
+      background: none;
+      border: none;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px; height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      nav {
+        position: fixed;
+        top: 64px; left: 0; right: 0;
+        background: rgba(15,10,30,0.97);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.5rem;
+        transform: translateY(-120%);
+        transition: transform 0.3s ease;
+        border-bottom: 1px solid var(--border);
+      }
+      nav.open { transform: translateY(0); }
+      nav a { padding: 0.8rem 1rem; font-size: 0.9rem; }
+      .header-info { display: none; }
+    }
+
+    /* HERO */
+    .hero {
+      position: relative; z-index: 1;
+      padding: 5rem 2rem 3rem;
+      max-width: 1200px; margin: 0 auto;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--green);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 30%, var(--purple-light) 70%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 640px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+
+    /* Taller tabs */
+    .taller-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .taller-tab {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.82rem;
+      padding: 0.6rem 1.5rem;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .taller-tab:hover { border-color: var(--purple-light); color: var(--text); }
+    .taller-tab.active {
+      background: linear-gradient(135deg, var(--purple), var(--purple2));
+      color: white;
+      border-color: var(--purple);
+      box-shadow: 0 4px 20px rgba(112,18,176,0.4);
+    }
+    .taller-content { display: none; }
+    .taller-content.active { display: block; }
+
+    /* KPI STRIP */
+    .kpi-strip {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      max-width: 1200px;
+      margin: 0 auto 3rem;
+      padding: 0 2rem;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.4rem 1.6rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .kpi.visible { opacity: 1; transform: translateY(0); }
+    .kpi:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(112,18,176,0.25);
+    }
+    .kpi::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--purple), var(--green));
+    }
+    .kpi-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .kpi-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+    .kpi-val.green { color: var(--green); }
+    .kpi-val.purple { color: var(--purple-light); }
+    .kpi-val.red { color: var(--red); }
+    .kpi-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .kpi-delta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--green);
+      margin-top: 0.5rem;
+    }
+    .kpi-delta.red { color: var(--red); }
+
+    /* MAIN LAYOUT */
+    main {
+      position: relative; z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--purple-light);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.7rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* CHART CARDS */
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.8rem;
+      transition: box-shadow 0.3s;
+    }
+    .chart-card:hover { box-shadow: 0 8px 32px rgba(112,18,176,0.2); }
+    .chart-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .chart-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .chart-wrap { position: relative; width: 100%; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 768px) {
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      .hero { padding: 3rem 1.5rem 2rem; }
+      .kpi-strip { padding: 0 1rem; }
+      main { padding: 0 1rem 3rem; }
+    }
+
+    /* TIMELINE */
+    .timeline-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      overflow-x: auto;
+    }
+    .timeline {
+      position: relative;
+      padding: 60px 0 40px;
+      min-width: 900px;
+    }
+    .tl-line {
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--purple), var(--green));
+      transform: translateY(-50%);
+    }
+    .tl-events {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tl-event {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    .tl-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 3px solid var(--dark);
+      position: relative; z-index: 2;
+      transition: transform 0.2s;
+    }
+    .tl-event:hover .tl-dot { transform: scale(1.5); }
+    .tl-year {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .tl-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 5px 9px;
+      border-radius: 8px;
+      max-width: 90px;
+      line-height: 1.3;
+      transition: all 0.2s;
+      position: absolute;
+    }
+    .tl-label.top { bottom: calc(100% + 20px); }
+    .tl-label.bottom { top: calc(100% + 20px); }
+    .tl-event:hover .tl-label {
+      transform: scale(1.08);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    /* WALLET RANKINGS */
+    .wallet-bar {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .wallet-name {
+      min-width: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .wallet-track {
+      flex: 1;
+      height: 10px;
+      background: rgba(112,18,176,0.15);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .wallet-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .wallet-val {
+      min-width: 50px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      text-align: right;
+      color: var(--green);
+    }
+
+    /* FILTER BUTTONS */
+    .filter-row {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .filter-btn {
+      font-size: 0.78rem;
+      font-family: 'Space Mono', monospace;
+      padding: 0.4rem 1rem;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--purple);
+      color: white;
+      border-color: var(--purple);
+    }
+
+    /* STAT BOXES for Taller 2 */
+    .stat-box {
+      background: rgba(112,18,176,0.15);
+      border-radius: 12px;
+      padding: 1.2rem;
+      border: 1px solid transparent;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .stat-box:hover {
+      border-color: var(--border);
+      transform: translateY(-2px);
+    }
+    .stat-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      line-height: 1.4;
+    }
+
+    /* Comparison table */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .compare-table th {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--purple-light);
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .compare-table td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid rgba(112,18,176,0.1);
+      color: var(--muted);
+    }
+    .compare-table tr:hover td { color: var(--text); }
+    .compare-table .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .tag-green { background: rgba(25,255,108,0.2); color: var(--green); }
+    .tag-red { background: rgba(239,68,68,0.2); color: var(--red); }
+    .tag-amber { background: rgba(245,158,11,0.2); color: var(--amber); }
+    .tag-purple { background: rgba(155,77,202,0.2); color: var(--purple-light); }
+
+    /* Alert card */
+    .alert-card {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .alert-card .chart-title { color: var(--red); }
+
+    /* FOOTER */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer span { color: var(--purple-light); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--dark2); }
+    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+
+    /* Pulse on timeline dots */
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(25,255,108,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(25,255,108,0); }
+    }
+    .tl-dot.latest { animation: pulse 2s infinite; }
+
+    /* Back to top */
+    .back-top {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: white;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      z-index: 99;
+      box-shadow: 0 4px 20px rgba(112,18,176,0.4);
+    }
+    .back-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .back-top:hover {
+      background: var(--purple2);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Escudo_UD.svg/200px-Escudo_UD.svg.png" alt="UD" style="height:32px;vertical-align:middle;margin-right:8px;filter:brightness(1.2)"/>FINTECH<span>.</span>CO <span style="color:var(--muted);font-size:0.7rem">5.0</span></div>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <nav id="nav">
+    <a class="active" onclick="scrollTo(0,0);closeMenu()">Dashboard</a>
+    <a onclick="scrollToSection('ecosistema');closeMenu()">Ecosistema</a>
+    <a onclick="scrollToSection('billeteras');closeMenu()">Billeteras</a>
+    <a onclick="scrollToSection('timeline');closeMenu()">Timeline</a>
+    <a onclick="scrollToSection('inclusion');closeMenu()">Inclusion</a>
+    <a onclick="scrollToSection('taller2');closeMenu()">DIAN & Blockchain</a>
+    <a href="phishing.html" onclick="closeMenu()">Phishing</a>
+    <a href="detector.html" onclick="closeMenu()">Detector</a>
+    <a href="deepfake.html" onclick="closeMenu()">Deepfake</a>
+    <a href="dashboard.html" onclick="closeMenu()">Resultados</a>
+  </nav>
+  <div class="header-info">
+    Colombia 2026 <span class="sub">· MinTic / Universidad Distrital</span>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">// Taller Colombia 5.0 🇨🇴</div>
+  <h1>FinTech Colombia<br/>Dashboard Interactivo</h1>
+  <p class="hero-sub">Estadisticas del ecosistema financiero digital colombiano. Talleres 1 y 2 unificados — Manizales, Eje Cafetero.</p>
+
+  <div class="taller-tabs">
+    <button class="taller-tab active" onclick="switchTaller(1, this)">Taller 1: FinTech</button>
+    <button class="taller-tab" onclick="switchTaller(2, this)">Taller 2: DIAN & Blockchain</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- TALLER 1 — FINTECH COLOMBIA                -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="taller-content active" id="taller1">
+
+<!-- KPI STRIP -->
+<div class="kpi-strip" id="kpis">
+  <div class="kpi">
+    <div class="kpi-val green" data-count="95.9" data-suffix="%">0%</div>
+    <div class="kpi-label">Tasa de Bancarizacion<br/>Record historico Sep 2024</div>
+    <div class="kpi-delta">+1.3pp vs 2023</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val" data-count="394" data-decimals="0">0</div>
+    <div class="kpi-label">Empresas FinTech activas<br/>en Colombia (2024)</div>
+    <div class="kpi-delta">+6.8% vs 2023</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val green" data-count="22" data-suffix="M">0M</div>
+    <div class="kpi-label">Usuarios Nequi<br/>Billetera #1 Colombia</div>
+    <div class="kpi-delta">de 18.5M en 2023</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val" data-count="332" data-prefix="$" data-suffix="B">$0B</div>
+    <div class="kpi-label">Pesos movilizados<br/>billeteras digitales (2023)</div>
+    <div class="kpi-delta">+37.8% vs 2022</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val green" data-count="513" data-prefix="$" data-suffix="M">$0M</div>
+    <div class="kpi-label">USD inversion FinTech<br/>75 deals en 2024</div>
+    <div class="kpi-delta">+36% crecimiento VC</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+  <!-- SECCION ECOSISTEMA -->
+  <div id="ecosistema">
+    <div class="section-title">01 // Ecosistema FinTech Colombia</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Crecimiento del Ecosistema</div>
+      <div class="chart-sub">Empresas FinTech activas 2017-2024 + tasa crecimiento</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartCrecimiento"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Distribucion por Segmento</div>
+      <div class="chart-sub">Participacion porcentual de cada vertical (2024)</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartSegmentos"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inversion VC -->
+  <div class="chart-card">
+    <div class="chart-title">Inversion VC en FinTech Colombia vs LATAM</div>
+    <div class="chart-sub">Capital de riesgo 2021-2024 (USD Millones) · Colombia destaca con +36% en 2024</div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterVC('all', this)">Todos</button>
+      <button class="filter-btn" onclick="filterVC('co', this)">Colombia</button>
+      <button class="filter-btn" onclick="filterVC('br', this)">Brasil</button>
+      <button class="filter-btn" onclick="filterVC('mx', this)">Mexico</button>
+    </div>
+    <div class="chart-wrap" style="height:240px">
+      <canvas id="chartVC"></canvas>
+    </div>
+  </div>
+
+  <!-- BILLETERAS -->
+  <div id="billeteras">
+    <div class="section-title">02 // Billeteras Digitales</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Usuarios por Billetera Digital</div>
+      <div class="chart-sub">Millones de usuarios — Colombia 2024</div>
+      <div style="margin-top:1.2rem">
+        <div class="wallet-bar">
+          <div class="wallet-name">Nequi</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#7012B0,#9B4DCA)" data-w="100"></div></div>
+          <div class="wallet-val">22.0M</div>
+        </div>
+        <div class="wallet-bar">
+          <div class="wallet-name">Daviplata</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#22C55E,#34D399)" data-w="66"></div></div>
+          <div class="wallet-val">14.6M</div>
+        </div>
+        <div class="wallet-bar">
+          <div class="wallet-name">dale!</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#8B5CF6,#C4B5FD)" data-w="16"></div></div>
+          <div class="wallet-val">3.5M</div>
+        </div>
+        <div class="wallet-bar">
+          <div class="wallet-name">Nu Colombia</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#10B981,#6EE7B7)" data-w="13"></div></div>
+          <div class="wallet-val">2.8M</div>
+        </div>
+        <div class="wallet-bar">
+          <div class="wallet-name">Mercado Pago</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#F59E0B,#FCD34D)" data-w="9"></div></div>
+          <div class="wallet-val">1.9M</div>
+        </div>
+        <div class="wallet-bar">
+          <div class="wallet-name">Tpaga</div>
+          <div class="wallet-track"><div class="wallet-fill" style="width:0%;background:linear-gradient(90deg,#EF4444,#FCA5A5)" data-w="5"></div></div>
+          <div class="wallet-val">1.2M</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Evolucion Nequi vs Daviplata</div>
+      <div class="chart-sub">Usuarios (millones) 2018-2024</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartBilleteras"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transacciones -->
+  <div class="chart-card">
+    <div class="chart-title">Transacciones y Volumen en Billeteras Digitales</div>
+    <div class="chart-sub">Millones de operaciones y billones COP movilizados 2019-2023</div>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="chartTransacciones"></canvas>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="timeline">
+    <div class="section-title">03 // Linea de Tiempo FinTech Colombia 1992-2025</div>
+  </div>
+
+  <div class="timeline-wrap">
+    <div class="chart-title">Historia de la Digitalizacion Financiera</div>
+    <div class="chart-sub" style="margin-bottom:1.5rem">Haz clic en cada evento para ver detalles · Desplaza horizontalmente para explorar</div>
+    <div class="timeline" id="timelineEl">
+      <div class="tl-line"></div>
+      <div class="tl-events" id="tlEvents"></div>
+    </div>
+    <div id="tlDetail" style="display:none;margin-top:1.5rem;background:rgba(112,18,176,0.12);border:1px solid var(--border);border-radius:14px;padding:1.2rem">
+      <div id="tlDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- INCLUSION FINANCIERA -->
+  <div id="inclusion">
+    <div class="section-title">04 // Inclusion Financiera y Caficultores</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Bancarizacion en Colombia 2019-2024</div>
+      <div class="chart-sub">Porcentaje de poblacion con al menos un producto financiero</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="chartBancarizacion"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Brecha de Informalidad — Caldas</div>
+      <div class="chart-sub">El reto especifico del Eje Cafetero</div>
+      <div style="margin-top:1.2rem;display:grid;gap:1rem">
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--green)">12%</div>
+          <div class="stat-desc">del cafe colombiano proviene de Caldas — potencial exportador enorme</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--red)">84.5%</div>
+          <div class="stat-desc">de quienes trabajan en microempresas rurales son informales sin acceso a banca digital</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" style="color:var(--purple-light)">36.8%</div>
+          <div class="stat-desc">informalidad laboral en Manizales — la mas baja de Colombia, pero aun alta en areas rurales</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remesas -->
+  <div class="chart-card">
+    <div class="chart-title">Remesas Recibidas por Colombia 2019-2023</div>
+    <div class="chart-sub">Miles de millones USD · Clave para comunidades cafeteras del Eje Cafetero</div>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="chartRemesas"></canvas>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- TALLER 2 — DIAN, NEOBANCOS & BLOCKCHAIN    -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="taller-content" id="taller2">
+
+<!-- KPI STRIP TALLER 2 -->
+<div class="kpi-strip" id="kpis2">
+  <div class="kpi">
+    <div class="kpi-val purple" data-count="2.1" data-suffix="M">0M</div>
+    <div class="kpi-label">Facturas electronicas<br/>emitidas diariamente en 2024</div>
+    <div class="kpi-delta">+45% vs 2022</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val green" data-count="5" data-decimals="0">0</div>
+    <div class="kpi-label">Neobancos activos<br/>en Colombia</div>
+    <div class="kpi-delta">LuloBank, Pibank, Movii...</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val" data-count="107" data-prefix="$" data-suffix="K" data-decimals="0">$0K</div>
+    <div class="kpi-label">Precio Bitcoin<br/>Maximo historico 2024</div>
+    <div class="kpi-delta">+160% desde 2023</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val red" data-count="3.2" data-prefix="$" data-suffix="B">$0B</div>
+    <div class="kpi-label">USD perdidos en estafas<br/>cripto globalmente (2023)</div>
+    <div class="kpi-delta red">OneCoin, BitConnect...</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-val green" data-count="67.7" data-suffix="%">0%</div>
+    <div class="kpi-label">FinTechs usan APIs<br/>como tecnologia principal</div>
+    <div class="kpi-delta">Open Finance 2024</div>
+  </div>
+</div>
+
+<main>
+
+  <!-- DIAN & FORMALIZACION -->
+  <div id="taller2-section">
+    <div class="section-title">05 // DIAN — Formalizacion Digital</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Facturacion Electronica DIAN</div>
+      <div class="chart-sub">Crecimiento de facturacion electronica en Colombia 2019-2024</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartDIAN"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Software Contable para Emprendedores</div>
+      <div class="chart-sub">Comparativa de herramientas accesibles para caficultores</div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Precio</th>
+            <th>DIAN</th>
+            <th>Mejor para</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--text);font-weight:600">Wave</td>
+            <td><span class="tag tag-green">Gratis</span></td>
+            <td><span class="tag tag-amber">Parcial</span></td>
+            <td>Freelancers</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-weight:600">Alegra</td>
+            <td><span class="tag tag-purple">$49K/mes</span></td>
+            <td><span class="tag tag-green">Si</span></td>
+            <td>MiPymes Colombia</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-weight:600">GnuCash</td>
+            <td><span class="tag tag-green">Gratis</span></td>
+            <td><span class="tag tag-red">No</span></td>
+            <td>Contabilidad personal</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-weight:600">ERPNext</td>
+            <td><span class="tag tag-green">Open Source</span></td>
+            <td><span class="tag tag-amber">Plugin</span></td>
+            <td>Cooperativas grandes</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-weight:600">Siigo</td>
+            <td><span class="tag tag-purple">$65K/mes</span></td>
+            <td><span class="tag tag-green">Si</span></td>
+            <td>Pymes establecidas</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- NEOBANCOS & MICROCREDITO -->
+  <div>
+    <div class="section-title">06 // Neobancos & Microcredito Digital</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Neobancos en Colombia</div>
+      <div class="chart-sub">Usuarios y crecimiento de bancos 100% digitales</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartNeobancos"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Rutas de Microcredito Digital</div>
+      <div class="chart-sub">Opciones de financiamiento para emprendedores</div>
+      <div style="display:grid;gap:0.8rem;margin-top:0.5rem">
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="font-size:2rem">&#x1F3E6;</div>
+          <div>
+            <div style="color:var(--text);font-weight:600;font-size:0.9rem">ADDI — Compra ahora, paga despues</div>
+            <div class="stat-desc">Sin tarjeta de credito, aprobacion en 2 min</div>
+          </div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="font-size:2rem">&#x1F4B0;</div>
+          <div>
+            <div style="color:var(--text);font-weight:600;font-size:0.9rem">Juancho Te Presta — Microcredito</div>
+            <div class="stat-desc">Desde $100K COP, sin historia crediticia</div>
+          </div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="font-size:2rem">&#x1F30E;</div>
+          <div>
+            <div style="color:var(--text);font-weight:600;font-size:0.9rem">Mercado Credito — Prestamos en linea</div>
+            <div class="stat-desc">Integrado con Mercado Libre, tasa desde 1.9%</div>
+          </div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="font-size:2rem">&#x1F331;</div>
+          <div>
+            <div style="color:var(--text);font-weight:600;font-size:0.9rem">Bancamia — Microcredito rural</div>
+            <div class="stat-desc">Especializados en caficultores y agro</div>
+          </div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="font-size:2rem">&#x26A1;</div>
+          <div>
+            <div style="color:var(--text);font-weight:600;font-size:0.9rem">RappiPay — Credito express</div>
+            <div class="stat-desc">Prestamos desde la app Rappi, desembolso inmediato</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINTECH LATAM -->
+  <div>
+    <div class="section-title">07 // FinTech en Latinoamerica</div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Ecosistema FinTech LATAM — Top 5 Paises</div>
+    <div class="chart-sub">Numero de empresas FinTech activas por pais (2024)</div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="chartLATAM"></canvas>
+    </div>
+  </div>
+
+  <!-- BLOCKCHAIN & CRIPTO -->
+  <div>
+    <div class="section-title">08 // Blockchain & Criptomonedas</div>
+  </div>
+
+  <div class="two-col">
+    <div class="chart-card">
+      <div class="chart-title">Precio Historico de Bitcoin (USD)</div>
+      <div class="chart-sub">Evolucion 2019-2024 con zonas de riesgo y oportunidad</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartBTC"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Como Funciona Blockchain</div>
+      <div class="chart-sub">Flujo simplificado de una transaccion</div>
+      <div style="display:grid;gap:0.6rem;margin-top:0.5rem">
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:var(--purple);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">1</div>
+          <div><span style="color:var(--text);font-weight:600">Solicitud</span> <span class="stat-desc">— Se crea la transaccion digital</span></div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:var(--purple2);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">2</div>
+          <div><span style="color:var(--text);font-weight:600">Propagacion</span> <span class="stat-desc">— Se envia a la red P2P de nodos</span></div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:var(--purple-light);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">3</div>
+          <div><span style="color:var(--text);font-weight:600">Validacion</span> <span class="stat-desc">— Los mineros/validadores verifican</span></div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:rgba(25,255,108,0.8);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">4</div>
+          <div><span style="color:var(--text);font-weight:600">Consenso</span> <span class="stat-desc">— La red acuerda que es valida (PoW/PoS)</span></div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:var(--green);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">5</div>
+          <div><span style="color:var(--text);font-weight:600">Bloque</span> <span class="stat-desc">— Se agrega al bloque y se encadena al anterior</span></div>
+        </div>
+        <div class="stat-box" style="display:flex;gap:1rem;align-items:center">
+          <div style="background:var(--green2);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">6</div>
+          <div><span style="color:var(--text);font-weight:600">Inmutable</span> <span class="stat-desc">— Registro permanente, transparente y verificable</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTAFAS CRIPTO -->
+  <div class="alert-card">
+    <div class="chart-title">Esquemas Ponzi vs Inversiones Legitimas</div>
+    <div class="chart-sub" style="color:rgba(239,68,68,0.7)">Aprende a detectar estafas cripto — Casos reales en Colombia</div>
+    <div class="two-col" style="margin-top:1rem">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--red);letter-spacing:0.1em;margin-bottom:0.8rem">SENALES DE ALERTA</div>
+        <div style="display:grid;gap:0.5rem">
+          <div class="stat-box" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">
+            <div style="color:var(--red);font-weight:600;font-size:0.85rem">Retornos garantizados &gt;10% mensual</div>
+            <div class="stat-desc">Ningun activo real garantiza esto</div>
+          </div>
+          <div class="stat-box" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">
+            <div style="color:var(--red);font-weight:600;font-size:0.85rem">Reclutamiento obligatorio</div>
+            <div class="stat-desc">Las ganancias dependen de traer mas gente</div>
+          </div>
+          <div class="stat-box" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">
+            <div style="color:var(--red);font-weight:600;font-size:0.85rem">Sin registro en SFC o DIAN</div>
+            <div class="stat-desc">No estan supervisados por reguladores</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--green);letter-spacing:0.1em;margin-bottom:0.8rem">PLATAFORMAS LEGITIMAS</div>
+        <div style="display:grid;gap:0.5rem">
+          <div class="stat-box" style="background:rgba(25,255,108,0.08);border:1px solid rgba(25,255,108,0.2)">
+            <div style="color:var(--green);font-weight:600;font-size:0.85rem">Buda.com — Exchange colombiano</div>
+            <div class="stat-desc">Regulado, KYC/AML, opera desde 2015</div>
+          </div>
+          <div class="stat-box" style="background:rgba(25,255,108,0.08);border:1px solid rgba(25,255,108,0.2)">
+            <div style="color:var(--green);font-weight:600;font-size:0.85rem">Bitso — Intercambio LATAM</div>
+            <div class="stat-desc">+8M usuarios, regulado en Mexico y Colombia</div>
+          </div>
+          <div class="stat-box" style="background:rgba(25,255,108,0.08);border:1px solid rgba(25,255,108,0.2)">
+            <div style="color:var(--green);font-weight:600;font-size:0.85rem">Binance — Exchange global</div>
+            <div class="stat-desc">Verificacion de identidad, P2P en COP</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1.2rem;padding:1rem;background:rgba(239,68,68,0.06);border-radius:10px;border:1px solid rgba(239,68,68,0.15)">
+      <div style="font-weight:700;color:var(--red);margin-bottom:0.3rem">Caso Real: OneCoin Colombia</div>
+      <div style="font-size:0.82rem;color:var(--muted);line-height:1.5">Ruja Ignatova estafo mas de $4B USD globalmente. En Colombia, miles de familias perdieron sus ahorros. OneCoin nunca tuvo una blockchain real — era una base de datos SQL comun.</div>
+    </div>
+  </div>
+
+  <!-- DeFi & Open Finance -->
+  <div class="chart-card">
+    <div class="chart-title">DeFi & Open Finance en Colombia</div>
+    <div class="chart-sub">El futuro de las finanzas abiertas y descentralizadas</div>
+    <div class="three-col">
+      <div class="stat-box" style="text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem">&#x1F310;</div>
+        <div style="color:var(--text);font-weight:600;margin-bottom:0.3rem">Open Banking</div>
+        <div class="stat-desc">APIs que conectan bancos con FinTechs. El usuario controla sus datos financieros.</div>
+      </div>
+      <div class="stat-box" style="text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem">&#x26D3;</div>
+        <div style="color:var(--text);font-weight:600;margin-bottom:0.3rem">DeFi</div>
+        <div class="stat-desc">Finanzas descentralizadas: prestamos, ahorro e intercambio sin intermediarios bancarios.</div>
+      </div>
+      <div class="stat-box" style="text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem">&#x1F512;</div>
+        <div style="color:var(--text);font-weight:600;margin-bottom:0.3rem">Wallets</div>
+        <div class="stat-desc">Hot wallets (Metamask) vs Cold wallets (Ledger). Tu clave privada = tu dinero.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<button class="back-top" id="backTop" onclick="scrollTo({top:0,behavior:'smooth'})" aria-label="Volver arriba">&#x2191;</button>
+
+<footer>
+  Datos: <span>MinTic</span> · <span>Universidad Distrital</span> · <span>Colombia FinTech Snapshot</span> · <span>Banco de la Republica</span> · <span>CoinMarketCap</span><br/>
+  Juegos: <a href="phishing.html" style="color:var(--purple-light);text-decoration:none">Phishing</a> · <a href="detector.html" style="color:var(--purple-light);text-decoration:none">Detector</a> · <a href="deepfake.html" style="color:var(--purple-light);text-decoration:none">Deepfake</a> · <a href="dashboard.html" style="color:var(--purple-light);text-decoration:none">Dashboard</a><br/>
+  Colombia 5.0 🇨🇴 · Manizales 2026
+</footer>
+
+<script>
+// =============================================
+// GSAP + ScrollTrigger Setup
+// =============================================
+gsap.registerPlugin(ScrollTrigger);
+
+// =============================================
+// CONFIG
+// =============================================
+const P = '#7012B0', P2 = '#9B4DCA', G = '#19FF6C', G2 = '#34D399';
+const LAVENDER = '#E9D5FF', DARK = '#0F0A1E';
+const textColor = '#9CA3AF', gridColor = 'rgba(112,18,176,0.15)';
+
+Chart.defaults.color = textColor;
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+function chartDefaults(extra = {}) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: textColor, boxWidth: 12, padding: 16 } },
+      tooltip: {
+        backgroundColor: '#1E1535',
+        borderColor: 'rgba(112,18,176,0.4)',
+        borderWidth: 1,
+        padding: 12,
+        titleColor: '#F3E8FF',
+        bodyColor: '#9CA3AF',
+        callbacks: extra.callbacks || {}
+      }
+    },
+    scales: extra.noScales ? {} : {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor }, grid: { color: gridColor } },
+      ...(extra.scales || {})
+    }
+  };
+}
+
+// =============================================
+// HAMBURGER MENU
+// =============================================
+const hamburger = document.getElementById('hamburger');
+const navEl = document.getElementById('nav');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('open');
+  navEl.classList.toggle('open');
+});
+function closeMenu() {
+  hamburger.classList.remove('open');
+  navEl.classList.remove('open');
+}
+
+// =============================================
+// TALLER TAB SWITCHING
+// =============================================
+let taller2ChartsInit = false;
+
+function switchTaller(num, btn) {
+  document.querySelectorAll('.taller-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.taller-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('taller' + num).classList.add('active');
+
+  if (num === 2 && !taller2ChartsInit) {
+    taller2ChartsInit = true;
+    initTaller2Charts();
+  }
+
+  animateKPIs(document.getElementById(num === 1 ? 'kpis' : 'kpis2'));
+  ScrollTrigger.refresh();
+}
+
+// =============================================
+// KPI COUNTER ANIMATION (GSAP)
+// =============================================
+function animateKPIs(container) {
+  const kpis = container.querySelectorAll('.kpi');
+  kpis.forEach((kpi, i) => {
+    gsap.to(kpi, {
+      opacity: 1, y: 0,
+      duration: 0.5,
+      delay: i * 0.1,
+      ease: 'power2.out',
+      onStart: () => kpi.classList.add('visible')
+    });
+
+    const valEl = kpi.querySelector('.kpi-val');
+    if (!valEl) return;
+    const target = parseFloat(valEl.dataset.count);
+    if (isNaN(target)) return;
+    const decimals = valEl.dataset.decimals !== undefined ? parseInt(valEl.dataset.decimals) : 1;
+    const prefix = valEl.dataset.prefix || '';
+    const suffix = valEl.dataset.suffix || '';
+
+    const counter = { val: 0 };
+    gsap.to(counter, {
+      val: target,
+      duration: 1.5,
+      delay: i * 0.1 + 0.2,
+      ease: 'power2.out',
+      onUpdate: () => {
+        valEl.textContent = prefix + counter.val.toFixed(decimals) + suffix;
+      },
+      onComplete: () => {
+        valEl.textContent = prefix + target.toFixed(decimals).replace(/\.0$/, '') + suffix;
+      }
+    });
+  });
+}
+
+// =============================================
+// CHART 1 — Crecimiento Ecosistema
+// =============================================
+new Chart(document.getElementById('chartCrecimiento'), {
+  type: 'bar',
+  data: {
+    labels: ['2017','2018','2019','2020','2021','2022','2023','2024'],
+    datasets: [
+      {
+        label: 'Empresas FinTech',
+        data: [124,148,180,200,279,341,369,394],
+        backgroundColor: ['rgba(112,18,176,0.25)','rgba(112,18,176,0.3)','rgba(112,18,176,0.35)','rgba(112,18,176,0.4)','rgba(112,18,176,0.5)','rgba(112,18,176,0.6)','rgba(112,18,176,0.75)','rgba(112,18,176,1)'],
+        borderColor: P, borderWidth: 1.5, borderRadius: 6,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Crecimiento %',
+        data: [null,19.4,21.6,11.1,39.5,22.2,8.2,6.8],
+        type: 'line',
+        borderColor: G, backgroundColor: 'rgba(25,255,108,0.08)',
+        pointBackgroundColor: DARK, pointBorderColor: G,
+        pointRadius: 5, pointBorderWidth: 2,
+        tension: 0.4, fill: true,
+        yAxisID: 'y2',
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults(),
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { position: 'left', ticks: { color: textColor }, grid: { color: gridColor } },
+      y2: { position: 'right', min: 0, max: 60, ticks: { color: G, callback: v => v + '%' }, grid: { drawOnChartArea: false } }
+    }
+  }
+});
+
+// =============================================
+// CHART 2 — Segmentos Donut
+// =============================================
+new Chart(document.getElementById('chartSegmentos'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Lending/Credito','Pagos & Remesas','WealthTech','InsurTech','Digital Banking','Open Finance','Otros'],
+    datasets: [{
+      data: [28.4, 18.5, 12.1, 9.8, 8.2, 5.1, 17.9],
+      backgroundColor: [P,'#19FF6C','#9B4DCA','#34D399','#8B5CF6','#10B981',LAVENDER],
+      borderColor: DARK, borderWidth: 3,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    ...chartDefaults({ noScales: true }),
+    cutout: '60%',
+    plugins: {
+      legend: { position: 'right', labels: { color: textColor, boxWidth: 10, padding: 10, font: { size: 11 } } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` } }
+    }
+  }
+});
+
+// =============================================
+// CHART 3 — VC Inversion
+// =============================================
+let vcChart;
+const vcData = {
+  all: {
+    labels: ['2021','2022','2023','2024'],
+    datasets: [
+      { label: 'Colombia', data: [276, 395, 377, 513], backgroundColor: P, borderColor: P, borderRadius: 4 },
+      { label: 'Brasil', data: [9800, 5600, 4100, 4430], backgroundColor: 'rgba(25,255,108,0.6)', borderColor: G, borderRadius: 4 },
+      { label: 'Mexico', data: [2800, 2100, 1800, 1850], backgroundColor: 'rgba(155,77,202,0.6)', borderColor: '#9B4DCA', borderRadius: 4 },
+    ]
+  },
+  co: { labels: ['2021','2022','2023','2024'], datasets: [{ label: 'Colombia (USD M)', data: [276,395,377,513], backgroundColor: P, borderColor: P, borderRadius: 4 }] },
+  br: { labels: ['2021','2022','2023','2024'], datasets: [{ label: 'Brasil (USD M)', data: [9800,5600,4100,4430], backgroundColor: G, borderColor: G, borderRadius: 4 }] },
+  mx: { labels: ['2021','2022','2023','2024'], datasets: [{ label: 'Mexico (USD M)', data: [2800,2100,1800,1850], backgroundColor: '#9B4DCA', borderColor: '#9B4DCA', borderRadius: 4 }] },
+};
+
+function filterVC(key, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  vcChart.data = vcData[key];
+  vcChart.update('active');
+}
+
+vcChart = new Chart(document.getElementById('chartVC'), {
+  type: 'bar',
+  data: vcData.all,
+  options: {
+    ...chartDefaults(),
+    plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: ctx => ` $${ctx.raw.toLocaleString()}M USD` } } }
+  }
+});
+
+// =============================================
+// CHART 4 — Billeteras Nequi vs Daviplata
+// =============================================
+new Chart(document.getElementById('chartBilleteras'), {
+  type: 'line',
+  data: {
+    labels: ['2018','2019','2020','2021','2022','2023','2024'],
+    datasets: [
+      {
+        label: 'Nequi',
+        data: [1.3, 3.2, 6.5, 10.0, 14.0, 18.5, 22.0],
+        borderColor: P2, backgroundColor: 'rgba(155,77,202,0.12)',
+        pointBackgroundColor: DARK, pointBorderColor: P2,
+        pointRadius: 5, pointBorderWidth: 2,
+        tension: 0.4, fill: true
+      },
+      {
+        label: 'Daviplata',
+        data: [5.9, 7.2, 9.5, 11.2, 12.5, 13.8, 14.6],
+        borderColor: G, backgroundColor: 'rgba(25,255,108,0.08)',
+        pointBackgroundColor: DARK, pointBorderColor: G,
+        pointRadius: 5, pointBorderWidth: 2,
+        tension: 0.4, fill: true
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults(),
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, callback: v => v + 'M' }, grid: { color: gridColor } }
+    },
+    plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}M usuarios` } } }
+  }
+});
+
+// =============================================
+// CHART 5 — Transacciones
+// =============================================
+new Chart(document.getElementById('chartTransacciones'), {
+  type: 'bar',
+  data: {
+    labels: ['2019','2020','2021','2022','2023'],
+    datasets: [
+      {
+        label: 'Transacciones (M)',
+        data: [580, 920, 1450, 2100, 3342],
+        backgroundColor: 'rgba(112,18,176,0.7)',
+        borderColor: P, borderRadius: 5,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Volumen ($ Billones COP)',
+        data: [42, 88, 156, 241, 332],
+        type: 'line',
+        borderColor: G, backgroundColor: 'rgba(25,255,108,0.1)',
+        pointBackgroundColor: DARK, pointBorderColor: G,
+        pointRadius: 5, tension: 0.4, fill: true,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults(),
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { position: 'left', ticks: { color: textColor }, grid: { color: gridColor } },
+      y2: { position: 'right', ticks: { color: G, callback: v => '$' + v + 'B' }, grid: { drawOnChartArea: false } }
+    }
+  }
+});
+
+// =============================================
+// CHART 6 — Bancarizacion
+// =============================================
+new Chart(document.getElementById('chartBancarizacion'), {
+  type: 'line',
+  data: {
+    labels: ['2019','2020','2021','2022','2023','2024'],
+    datasets: [
+      {
+        label: 'Bancarizacion (%)',
+        data: [87.1, 90.7, 92.1, 93.8, 94.6, 95.9],
+        borderColor: P2, backgroundColor: 'rgba(155,77,202,0.1)',
+        pointBackgroundColor: DARK, pointBorderColor: P2,
+        pointRadius: 6, tension: 0.4, fill: true, pointBorderWidth: 2
+      },
+      {
+        label: 'Usan servicios digitales (%)',
+        data: [55, 62, 68, 71, 74, 76],
+        borderColor: G, backgroundColor: 'rgba(25,255,108,0.06)',
+        pointBackgroundColor: DARK, pointBorderColor: G,
+        pointRadius: 6, tension: 0.4, fill: true, pointBorderWidth: 2
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults(),
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { min: 50, max: 100, ticks: { color: textColor, callback: v => v + '%' }, grid: { color: gridColor } }
+    }
+  }
+});
+
+// =============================================
+// CHART 7 — Remesas
+// =============================================
+new Chart(document.getElementById('chartRemesas'), {
+  type: 'bar',
+  data: {
+    labels: ['2019','2020','2021','2022','2023'],
+    datasets: [{
+      label: 'Remesas recibidas (USD Billones)',
+      data: [6.8, 8.2, 9.0, 9.4, 9.8],
+      backgroundColor: ['rgba(112,18,176,0.4)','rgba(112,18,176,0.5)','rgba(112,18,176,0.65)','rgba(112,18,176,0.8)','rgba(25,255,108,0.85)'],
+      borderColor: [P,P,P,P,G],
+      borderWidth: 2, borderRadius: 6
+    }]
+  },
+  options: {
+    ...chartDefaults(),
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` $${ctx.raw}B USD en remesas` } }
+    },
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, callback: v => '$' + v + 'B' }, grid: { color: gridColor } }
+    }
+  }
+});
+
+// =============================================
+// TALLER 2 CHARTS (lazy init)
+// =============================================
+function initTaller2Charts() {
+  // DIAN Facturacion
+  new Chart(document.getElementById('chartDIAN'), {
+    type: 'bar',
+    data: {
+      labels: ['2019','2020','2021','2022','2023','2024'],
+      datasets: [{
+        label: 'Facturas electronicas (millones/dia)',
+        data: [0.1, 0.3, 0.6, 1.0, 1.5, 2.1],
+        backgroundColor: ['rgba(112,18,176,0.3)','rgba(112,18,176,0.4)','rgba(112,18,176,0.5)','rgba(112,18,176,0.6)','rgba(112,18,176,0.8)','rgba(25,255,108,0.85)'],
+        borderColor: [P,P,P,P,P,G],
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: {
+      ...chartDefaults(),
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}M facturas/dia` } }
+      },
+      scales: {
+        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, callback: v => v + 'M' }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  // Neobancos
+  new Chart(document.getElementById('chartNeobancos'), {
+    type: 'bar',
+    data: {
+      labels: ['LuloBank', 'Pibank', 'Movii', 'Rappipay', 'Ualá'],
+      datasets: [{
+        label: 'Usuarios estimados (millones)',
+        data: [1.2, 0.8, 3.5, 2.1, 0.6],
+        backgroundColor: [P, '#8B5CF6', G, '#F59E0B', '#9B4DCA'],
+        borderColor: [P, '#8B5CF6', G, '#F59E0B', '#9B4DCA'],
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: {
+      ...chartDefaults(),
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}M usuarios` } }
+      },
+      scales: {
+        x: { ticks: { color: textColor, callback: v => v + 'M' }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, font: { weight: 'bold' } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // FinTech LATAM
+  new Chart(document.getElementById('chartLATAM'), {
+    type: 'bar',
+    data: {
+      labels: ['Brasil', 'Mexico', 'Colombia', 'Argentina', 'Chile'],
+      datasets: [{
+        label: 'FinTechs activas',
+        data: [1058, 773, 394, 351, 179],
+        backgroundColor: [G, '#F59E0B', P, '#8B5CF6', '#10B981'],
+        borderColor: [G, '#F59E0B', P, '#8B5CF6', '#10B981'],
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: {
+      ...chartDefaults(),
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} empresas FinTech` } }
+      },
+      scales: {
+        x: { ticks: { color: textColor, font: { weight: 'bold' } }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  // Bitcoin historico
+  new Chart(document.getElementById('chartBTC'), {
+    type: 'line',
+    data: {
+      labels: ['Ene 2020','Jul 2020','Ene 2021','Jul 2021','Ene 2022','Jul 2022','Ene 2023','Jul 2023','Ene 2024','Jul 2024','Dic 2024'],
+      datasets: [{
+        label: 'BTC Precio (USD)',
+        data: [7200, 9100, 33000, 35000, 38000, 19000, 16500, 30000, 42000, 65000, 107000],
+        borderColor: '#F59E0B',
+        backgroundColor: 'rgba(245,158,11,0.08)',
+        pointBackgroundColor: DARK,
+        pointBorderColor: '#F59E0B',
+        pointRadius: 4, pointBorderWidth: 2,
+        tension: 0.3, fill: true
+      }]
+    },
+    options: {
+      ...chartDefaults(),
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` $${ctx.raw.toLocaleString()} USD` } }
+      },
+      scales: {
+        x: { ticks: { color: textColor, maxRotation: 45 }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  animateKPIs(document.getElementById('kpis2'));
+}
+
+// =============================================
+// INTERACTIVE TIMELINE
+// =============================================
+const timelineEvents = [
+  { year: 1992, label: 'Cajeros ATM', color: LAVENDER, textColor: '#1F2937', side: 'bottom',
+    detail: '<strong>1992 — Cajeros Automaticos</strong><br/>Bancolombia lanza los primeros ATMs en Colombia. Inicio de la banca electronica en el pais.' },
+  { year: 1999, label: 'Banca por Internet', color: G, side: 'top',
+    detail: '<strong>1999 — Banca por Internet</strong><br/>Primeras plataformas de banca online. Los colombianos empiezan a consultar saldos y hacer transferencias desde el computador.' },
+  { year: 2005, label: 'PSE nace', color: '#8B5CF6', side: 'bottom',
+    detail: '<strong>2005 — PSE (Pagos Seguros en Linea)</strong><br/>ACH Colombia lanza PSE. Revoluciona el e-commerce colombiano permitiendo debito directo desde cuentas bancarias.' },
+  { year: 2007, label: 'Banca Movil', color: '#9B4DCA', side: 'top',
+    detail: '<strong>2007 — Primera Banca Movil</strong><br/>Los bancos lanzan apps WAP y SMS banking. Inicio de la banca por celular antes del smartphone.' },
+  { year: 2015, label: 'Daviplata', color: G, side: 'bottom',
+    detail: '<strong>2015 — Daviplata</strong><br/>Davivienda lanza Daviplata: primer monedero movil para personas sin cuenta bancaria. Solo necesitas cedula y celular.' },
+  { year: 2017, label: 'Nequi nace', color: P, side: 'top',
+    detail: '<strong>2017 — Nequi</strong><br/>Bancolombia lanza Nequi como fintech independiente enfocada en millennials. 100% digital. Hoy es la billetera #1 con 22M usuarios.' },
+  { year: 2018, label: '+89% billeteras', color: G2, side: 'bottom',
+    detail: '<strong>2018 — Explosion de Billeteras</strong><br/>GFK reporta crecimiento del 89% en usuarios de billeteras moviles. Nequi supera a Daviplata en velocidad de crecimiento.' },
+  { year: 2020, label: 'COVID-19 +39.5%', color: '#EF4444', side: 'top',
+    detail: '<strong>2020 — Catalizador COVID-19</strong><br/>La pandemia dispara la adopcion digital. Las FinTech crecen 39.5% pasando de 200 a 279 empresas. Subsidios del Estado via billeteras digitales.' },
+  { year: 2022, label: 'Open Finance', color: '#10B981', side: 'bottom',
+    detail: '<strong>2022 — Open Finance y APIs</strong><br/>Colombia avanza en regulacion de Open Finance. 67.7% de las FinTech adoptan APIs como tecnologia principal.' },
+  { year: 2023, label: '$332B COP', color: '#F59E0B', side: 'top',
+    detail: '<strong>2023 — Record en Billeteras</strong><br/>$332 billones COP a traves de 13 billeteras digitales con 3.342M transacciones. 54M usuarios registrados.' },
+  { year: 2024, label: '394 FinTechs', color: P, side: 'bottom', latest: true,
+    detail: '<strong>2024 — Madurez del Ecosistema</strong><br/>394 empresas FinTech activas (+6.8%). Nequi 22M usuarios. $513M USD en inversion FinTech (+36%) — el mayor en LATAM.' },
+  { year: 2025, label: 'Bre-B 24/7', color: G, side: 'top',
+    detail: '<strong>2025 — Sistema Bre-B</strong><br/>Banco de la Republica implementa Bre-B: pagos inmediatos 24/7 interoperables. El Pix colombiano.' },
+];
+
+function buildTimeline() {
+  const container = document.getElementById('tlEvents');
+  const minY = 1990, maxY = 2026;
+  const totalSpan = maxY - minY;
+
+  timelineEvents.forEach((ev) => {
+    const pct = ((ev.year - minY) / totalSpan * 100).toFixed(2);
+    const el = document.createElement('div');
+    el.className = 'tl-event';
+    el.style.position = 'absolute';
+    el.style.left = pct + '%';
+    el.style.top = '50%';
+    el.style.transform = 'translateY(-50%)';
+
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot' + (ev.latest ? ' latest' : '');
+    dot.style.background = ev.color;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'tl-label ' + ev.side;
+    lbl.style.background = ev.color + 'dd';
+    lbl.style.color = ev.textColor || '#fff';
+    lbl.style.fontSize = '0.68rem';
+    lbl.textContent = ev.label;
+
+    const yr = document.createElement('div');
+    yr.className = 'tl-year';
+    yr.style.position = 'absolute';
+    yr.style.top = ev.side === 'bottom' ? 'calc(100% + 100px)' : 'calc(-40px)';
+    yr.textContent = ev.year;
+
+    el.appendChild(dot);
+    el.appendChild(lbl);
+    el.appendChild(yr);
+
+    el.addEventListener('click', () => {
+      document.getElementById('tlDetail').style.display = 'block';
+      document.getElementById('tlDetailContent').innerHTML =
+        `<div style="display:flex;gap:1rem;align-items:start">
+          <div style="background:${ev.color};width:4px;border-radius:2px;align-self:stretch;min-height:40px"></div>
+          <div>
+            <div style="font-size:1rem;color:var(--text);line-height:1.5">${ev.detail}</div>
+            <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:0.5rem">${ev.year}</div>
+          </div>
+        </div>`;
+    });
+
+    container.appendChild(el);
+  });
+
+  document.getElementById('timelineEl').style.height = '180px';
+}
+buildTimeline();
+
+// =============================================
+// WALLET BAR ANIMATION
+// =============================================
+function animateWallets() {
+  document.querySelectorAll('.wallet-fill').forEach(el => {
+    const w = el.dataset.w;
+    setTimeout(() => { el.style.width = w + '%'; }, 300);
+  });
+}
+
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) animateWallets(); });
+}, { threshold: 0.3 });
+obs.observe(document.getElementById('billeteras'));
+
+// =============================================
+// SCROLL NAV + ACTIVE STATE
+// =============================================
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const sections = ['ecosistema','billeteras','timeline','inclusion','taller2-section'];
+const navLinks = document.querySelectorAll('nav a');
+
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY + 100;
+
+  // Back to top button
+  const backTop = document.getElementById('backTop');
+  if (window.scrollY > 400) {
+    backTop.classList.add('visible');
+  } else {
+    backTop.classList.remove('visible');
+  }
+
+  // Active nav link
+  let current = '';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top + window.scrollY <= scrollY) {
+      current = id;
+    }
+  });
+
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    const onclick = link.getAttribute('onclick') || '';
+    if (current && onclick.includes(current)) {
+      link.classList.add('active');
+    }
+  });
+});
+
+// =============================================
+// GSAP SCROLL ANIMATIONS
+// =============================================
+gsap.utils.toArray('.chart-card').forEach(card => {
+  gsap.from(card, {
+    scrollTrigger: {
+      trigger: card,
+      start: 'top 85%',
+      toggleActions: 'play none none none'
+    },
+    y: 30,
+    opacity: 0,
+    duration: 0.6,
+    ease: 'power2.out'
+  });
+});
+
+gsap.from('.hero h1', { y: 40, opacity: 0, duration: 0.8, ease: 'power3.out' });
+gsap.from('.hero-eyebrow', { y: 20, opacity: 0, duration: 0.6, delay: 0.2, ease: 'power2.out' });
+gsap.from('.hero-sub', { y: 20, opacity: 0, duration: 0.6, delay: 0.4, ease: 'power2.out' });
+gsap.from('.taller-tabs', { y: 20, opacity: 0, duration: 0.6, delay: 0.5, ease: 'power2.out' });
+
+// Init KPIs on load
+animateKPIs(document.getElementById('kpis'));
+</script>
+</body>
+</html>

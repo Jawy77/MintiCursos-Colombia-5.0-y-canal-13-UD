@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deepfake Detective — Colombia 5.0</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#7012B0;--purple2:#8B2FC9;--purple-light:#9B4DCA;
+  --green:#19FF6C;--green2:#14D957;
+  --dark:#0F0A1E;--dark2:#1a1030;--card:#1E1535;
+  --text:#F2F2F2;--muted:#9CA3AF;
+  --border:rgba(112,18,176,0.3);--glow:rgba(112,18,176,0.4);
+  --red:#EF4444;--amber:#F59E0B;--blue:#3B82F6;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
+  min-height:100vh;overflow-x:hidden;position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%,rgba(112,18,176,0.18) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(25,255,108,0.10) 0%,transparent 55%),
+    radial-gradient(ellipse 40% 60% at 50% 50%,rgba(124,58,237,0.08) 0%,transparent 70%);
+}
+.container{max-width:720px;margin:0 auto;padding:1rem;position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+
+/* Header */
+.game-header{
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+  background:rgba(15,10,30,0.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  position:fixed;top:0;left:0;right:0;z-index:100;height:56px;
+}
+.game-header h1{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--purple-light);flex-shrink:0}
+.game-header .tag{
+  display:inline-block;font-family:'Space Mono',monospace;font-size:.65rem;
+  background:rgba(112,18,176,0.25);color:var(--purple-light);
+  padding:2px 8px;border-radius:20px;flex-shrink:0;
+}
+.game-header nav{display:flex;gap:.25rem}
+.game-header nav a{
+  font-size:.78rem;font-weight:500;color:var(--muted);
+  padding:.35rem .7rem;border-radius:6px;text-decoration:none;
+  transition:all .2s;white-space:nowrap;
+}
+.game-header nav a:hover,.game-header nav a.active{
+  color:var(--text);background:rgba(112,18,176,0.25);
+}
+.hamburger{
+  display:none;flex-direction:column;gap:5px;cursor:pointer;
+  padding:8px;z-index:200;background:none;border:none;
+}
+.hamburger span{
+  display:block;width:24px;height:2px;background:var(--text);
+  border-radius:2px;transition:all .3s;
+}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .game-header nav{
+    position:fixed;top:56px;left:0;right:0;
+    background:rgba(15,10,30,0.97);backdrop-filter:blur(20px);
+    flex-direction:column;padding:1rem;gap:.5rem;
+    transform:translateY(-120%);transition:transform .3s ease;
+    border-bottom:1px solid var(--border);
+  }
+  .game-header nav.open{transform:translateY(0)}
+  .game-header nav a{padding:.8rem 1rem;font-size:.9rem}
+  .game-header .tag{display:none}
+}
+
+/* Progress bar */
+.progress-wrap{margin-top:68px;padding:.5rem 0;display:none}
+.progress-bar{height:6px;background:var(--dark2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--purple),var(--green));border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-text{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);text-align:right;margin-top:4px}
+
+/* Timer */
+.timer-wrap{display:none;text-align:center;margin:.5rem 0}
+.timer-ring{width:56px;height:56px;margin:0 auto;position:relative}
+.timer-ring svg{width:56px;height:56px;transform:rotate(-90deg)}
+.timer-ring circle{fill:none;stroke-width:4}
+.timer-ring .bg{stroke:var(--dark2)}
+.timer-ring .fg{stroke:var(--green);stroke-linecap:round;transition:stroke .3s}
+.timer-ring .fg.warn{stroke:var(--amber)}
+.timer-ring .fg.danger{stroke:var(--red)}
+.timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--text)}
+
+/* Screens */
+.screen{display:none;flex-direction:column;align-items:center;gap:1.5rem}
+.screen.active{display:flex}
+
+/* Start screen */
+#startScreen{padding-top:80px}
+.hero-icon{font-size:4rem;margin-bottom:-.5rem}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,5vw,2.4rem);text-align:center;line-height:1.2}
+.hero-title .accent{color:var(--green)}
+.hero-sub{color:var(--muted);text-align:center;max-width:480px;font-size:.95rem;line-height:1.5}
+.input-group{width:100%;max-width:360px}
+.input-group label{font-size:.8rem;color:var(--muted);margin-bottom:6px;display:block}
+.input-group input{
+  width:100%;padding:.75rem 1rem;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;
+  outline:none;transition:border .3s,box-shadow .3s;
+}
+.input-group input:focus{border-color:var(--purple-light);box-shadow:0 0 0 3px rgba(155,77,202,0.15)}
+.input-group input::placeholder{color:rgba(156,163,175,.5)}
+
+.btn{
+  padding:.85rem 2.2rem;border:none;border-radius:12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;
+  transition:transform .2s,box-shadow .3s,background .3s;
+  display:inline-flex;align-items:center;gap:.5rem;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;
+  box-shadow:0 4px 20px rgba(112,18,176,0.35);
+}
+.btn-primary:hover{box-shadow:0 6px 28px rgba(112,18,176,0.5)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+/* Briefing screen */
+#briefingScreen{padding-top:80px}
+.briefing-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem;width:100%;max-width:540px;position:relative;overflow:hidden;
+}
+.briefing-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--purple),var(--green));
+}
+.briefing-card h3{font-family:'DM Serif Display',serif;font-size:1.15rem;margin-bottom:.75rem}
+.briefing-card p{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1rem}
+.tip-list{display:flex;flex-direction:column;gap:.75rem}
+.tip-item{
+  display:flex;align-items:start;gap:.75rem;padding:.75rem;
+  background:rgba(112,18,176,0.1);border-radius:10px;
+}
+.tip-icon{font-size:1.4rem;flex-shrink:0;margin-top:2px}
+.tip-text{font-size:.85rem;color:var(--text);line-height:1.5}
+.tip-text strong{color:var(--purple-light)}
+
+/* Game screen */
+#gameScreen{padding-top:70px}
+.image-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:0;width:100%;max-width:600px;position:relative;overflow:hidden;
+}
+.image-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:2;
+  background:linear-gradient(90deg,var(--purple),var(--green));
+}
+.image-card img{
+  width:100%;max-height:400px;object-fit:cover;display:block;
+  background:linear-gradient(135deg,var(--dark2),var(--card));
+}
+.image-card .img-placeholder{
+  width:100%;height:300px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--dark2),var(--card));
+  font-size:4rem;
+}
+.image-meta{
+  padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--border);
+}
+.image-category{
+  font-family:'Space Mono',monospace;font-size:.7rem;
+  padding:3px 10px;border-radius:20px;font-weight:700;
+}
+.image-category.retrato{background:rgba(112,18,176,0.3);color:var(--purple-light)}
+.image-category.paisaje{background:rgba(25,255,108,0.2);color:var(--green)}
+.image-category.objeto{background:rgba(245,158,11,0.2);color:var(--amber)}
+.image-category.grupo{background:rgba(59,130,246,0.2);color:var(--blue)}
+.image-difficulty{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--muted)}
+
+/* Clue Toolbar */
+.toolbar{
+  display:flex;gap:.6rem;width:100%;max-width:600px;justify-content:center;flex-wrap:wrap;
+}
+.tool-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:.6rem 1rem;border:1px solid var(--border);border-radius:12px;
+  background:var(--card);color:var(--muted);cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;
+  transition:all .25s;min-width:80px;
+}
+.tool-btn:hover{border-color:var(--purple-light);color:var(--text);transform:translateY(-2px)}
+.tool-btn .tool-icon{font-size:1.3rem}
+.tool-btn.used{opacity:.5;cursor:default;border-color:var(--border)}
+.tool-btn.used:hover{transform:none;color:var(--muted)}
+
+/* Clue cards */
+.clue-cards{
+  width:100%;max-width:600px;display:flex;flex-direction:column;gap:.5rem;
+}
+.clue-card{
+  display:none;padding:.75rem 1rem;border-radius:10px;
+  border:1px solid;font-size:.82rem;line-height:1.5;
+  animation:clueSlide .3s ease-out;
+}
+@keyframes clueSlide{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.clue-card.visible{display:flex;align-items:start;gap:.6rem}
+.clue-signal{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px;
+}
+.clue-card.red{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3)}
+.clue-card.red .clue-signal{background:var(--red)}
+.clue-card.green{background:rgba(25,255,108,0.08);border-color:rgba(25,255,108,0.25)}
+.clue-card.green .clue-signal{background:var(--green)}
+.clue-card.amber{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3)}
+.clue-card.amber .clue-signal{background:var(--amber)}
+
+/* Verdict buttons */
+.choices{display:flex;gap:1rem;width:100%;max-width:600px}
+.btn-choice{
+  flex:1;padding:1rem;border:2px solid var(--border);border-radius:14px;
+  background:var(--card);color:var(--text);font-weight:700;font-size:1rem;
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .25s;display:flex;flex-direction:column;align-items:center;gap:.3rem;
+}
+.btn-choice .icon{font-size:1.5rem}
+.btn-choice:hover{transform:translateY(-2px)}
+.btn-choice.real:hover{border-color:var(--green);box-shadow:0 4px 20px rgba(25,255,108,0.2)}
+.btn-choice.ai:hover{border-color:var(--red);box-shadow:0 4px 20px rgba(239,68,68,0.2)}
+.btn-choice:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+/* Feedback */
+.feedback{display:none;width:100%;max-width:600px;border-radius:14px;padding:1.25rem;border:1px solid}
+.feedback.correct{background:rgba(25,255,108,0.1);border-color:rgba(25,255,108,0.3)}
+.feedback.wrong{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3)}
+.feedback.timeout{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3)}
+.feedback-header{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:1.05rem;margin-bottom:.5rem}
+.feedback.correct .feedback-header{color:var(--green)}
+.feedback.wrong .feedback-header{color:var(--red)}
+.feedback.timeout .feedback-header{color:var(--amber)}
+.feedback-text{color:var(--muted);font-size:.88rem;line-height:1.55;margin-bottom:.75rem}
+.feedback-signals{display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem}
+.feedback-signal{
+  display:flex;align-items:center;gap:.5rem;font-size:.8rem;
+}
+.feedback-signal .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.feedback-signal .dot.red{background:var(--red)}
+.feedback-signal .dot.green{background:var(--green)}
+.feedback-signal .dot.amber{background:var(--amber)}
+
+.btn-next{
+  padding:.7rem 2rem;border:none;border-radius:10px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.9rem;
+  background:var(--purple);color:#fff;margin-top:.25rem;
+  transition:background .3s,transform .2s;
+}
+.btn-next:hover{background:var(--purple2)}
+.btn-next:active{transform:scale(.97)}
+
+/* Score popup */
+.score-popup{
+  font-family:'Space Mono',monospace;font-size:.8rem;font-weight:700;
+  color:var(--green);text-align:center;margin-top:.25rem;
+}
+.score-popup.zero{color:var(--red)}
+
+/* Zoom Modal */
+.zoom-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.9);cursor:crosshair;
+}
+.zoom-overlay.active{display:flex;align-items:center;justify-content:center}
+.zoom-close{
+  position:fixed;top:1rem;right:1rem;z-index:201;
+  width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);
+  background:rgba(0,0,0,0.5);color:white;font-size:1.2rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.zoom-close:hover{background:rgba(255,255,255,0.1)}
+.zoom-img-wrap{
+  position:relative;max-width:90vw;max-height:85vh;
+}
+.zoom-img-wrap img{
+  max-width:90vw;max-height:85vh;object-fit:contain;display:block;
+  border-radius:8px;
+}
+.zoom-lens{
+  position:fixed;width:160px;height:160px;border-radius:50%;
+  border:3px solid var(--purple-light);
+  pointer-events:none;display:none;
+  background-repeat:no-repeat;
+  box-shadow:0 0 30px rgba(112,18,176,0.4),inset 0 0 10px rgba(0,0,0,0.3);
+  z-index:202;
+}
+.zoom-hint{
+  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+  font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);
+  background:rgba(0,0,0,0.7);padding:.5rem 1rem;border-radius:8px;
+}
+
+/* Results screen */
+#resultScreen{padding-top:80px}
+.result-hero{text-align:center}
+.result-icon{font-size:4rem}
+.result-score{
+  font-family:'Space Mono',monospace;font-size:3.5rem;font-weight:700;
+  background:linear-gradient(135deg,var(--purple-light),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-top:.25rem}
+.result-subtitle{color:var(--muted);font-size:.9rem;margin-top:.25rem}
+.result-detail{
+  font-family:'Space Mono',monospace;font-size:.8rem;color:var(--muted);margin-top:.5rem;
+}
+
+/* Summary grid */
+.summary-grid{
+  width:100%;max-width:600px;display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;
+}
+.summary-card{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:.6rem;text-align:center;font-size:.7rem;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.summary-card .sc-icon{font-size:1.3rem}
+.summary-card .sc-num{font-family:'Space Mono',monospace;font-weight:700;font-size:.65rem;color:var(--muted)}
+.summary-card.ok{border-color:rgba(25,255,108,0.3)}
+.summary-card.ok .sc-icon{filter:none}
+.summary-card.fail{border-color:rgba(239,68,68,0.3);opacity:.7}
+
+/* Tips */
+.tips-box{
+  width:100%;max-width:600px;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.25rem;
+}
+.tips-box h3{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:.75rem;color:var(--amber)}
+.tips-box ul{list-style:none;display:flex;flex-direction:column;gap:.5rem}
+.tips-box li{font-size:.85rem;color:var(--muted);line-height:1.5;padding-left:1.2rem;position:relative}
+.tips-box li::before{content:'';position:absolute;left:0;top:7px;width:6px;height:6px;border-radius:50%;background:var(--purple-light)}
+
+.result-actions{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+
+/* Firebase status */
+.firebase-status{
+  font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);
+  text-align:center;margin-top:.5rem;
+}
+.firebase-status.success{color:var(--green)}
+.firebase-status.error{color:var(--red)}
+
+/* Sound toggle */
+.sound-toggle{
+  position:fixed;bottom:1rem;right:1rem;z-index:100;
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--border);
+  background:var(--card);color:var(--muted);font-size:1.2rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s;backdrop-filter:blur(10px);
+}
+.sound-toggle:hover{background:var(--dark2)}
+
+/* Responsive */
+@media(max-width:600px){
+  .summary-grid{grid-template-columns:repeat(5,1fr);gap:.35rem}
+  .summary-card{padding:.4rem}
+  .summary-card .sc-icon{font-size:1rem}
+}
+@media(max-width:480px){
+  .container{padding:.75rem}
+  .image-card img{max-height:280px}
+  .toolbar{gap:.4rem}
+  .tool-btn{padding:.5rem .6rem;min-width:68px;font-size:.65rem}
+  .tool-btn .tool-icon{font-size:1.1rem}
+  .choices{flex-direction:column;gap:.75rem}
+  .btn-choice{flex-direction:row;padding:.85rem 1rem}
+  .btn-choice .icon{font-size:1.2rem}
+  .result-score{font-size:2.8rem}
+  .timer-ring{width:48px;height:48px}
+  .timer-ring svg{width:48px;height:48px}
+  .summary-grid{grid-template-columns:repeat(5,1fr);gap:.25rem}
+  .summary-card .sc-num{font-size:.6rem}
+}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--dark2)}
+::-webkit-scrollbar-thumb{background:var(--purple);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="game-header">
+  <h1><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Escudo_UD.svg/200px-Escudo_UD.svg.png" alt="UD" style="height:28px;vertical-align:middle;margin-right:8px;filter:brightness(1.2)"/>Deepfake Detective</h1>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <nav id="nav">
+    <a href="index.html">Dashboard FinTech</a>
+    <a href="phishing.html">Phishing</a>
+    <a href="detector.html">Detector</a>
+    <a href="deepfake.html" class="active">Deepfake</a>
+    <a href="dashboard.html">Resultados</a>
+  </nav>
+  <span class="tag">Colombia 5.0 🇨🇴</span>
+</div>
+
+<!-- Sound toggle -->
+<button class="sound-toggle" id="soundBtn" title="Sonido On/Off">🔊</button>
+
+<!-- Zoom overlay -->
+<div class="zoom-overlay" id="zoomOverlay">
+  <button class="zoom-close" id="zoomClose">✕</button>
+  <div class="zoom-img-wrap" id="zoomImgWrap">
+    <img id="zoomImg" src="" alt="Zoom"/>
+  </div>
+  <div class="zoom-lens" id="zoomLens"></div>
+  <div class="zoom-hint">Mueve el cursor para inspeccionar detalles</div>
+</div>
+
+<div class="container">
+
+<!-- Start Screen -->
+<div class="screen active" id="startScreen">
+  <div class="hero-icon">🎭</div>
+  <h2 class="hero-title">Deepfake<br/><span class="accent">Detective</span></h2>
+  <p class="hero-sub">Detecta imagenes generadas por IA. Te mostraremos 10 imagenes — algunas son fotos reales y otras fueron creadas por inteligencia artificial. Usa herramientas de analisis para decidir.</p>
+  <div class="input-group">
+    <label for="playerAlias">Tu alias</label>
+    <input type="text" id="playerAlias" placeholder="Escribe tu alias..." maxlength="20" autocomplete="off"/>
+  </div>
+  <button class="btn btn-primary" id="startBtn" disabled>Comenzar Mision</button>
+</div>
+
+<!-- Briefing Screen -->
+<div class="screen" id="briefingScreen">
+  <div class="hero-icon">🔍</div>
+  <h2 class="hero-title">Antes de empezar...</h2>
+  <div class="briefing-card">
+    <h3>Que son los Deepfakes?</h3>
+    <p>Los deepfakes son imagenes, videos o audios generados por inteligencia artificial que imitan la realidad. Modelos como Midjourney, DALL-E y Stable Diffusion pueden crear imagenes hiperrealistas, pero dejan pistas sutiles.</p>
+    <div class="tip-list">
+      <div class="tip-item">
+        <span class="tip-icon">👁️</span>
+        <div class="tip-text"><strong>Ojos y rostro:</strong> Busca asimetria en pupilas, reflejos disparejos en los ojos, y bordes borrosos entre el cabello y el fondo.</div>
+      </div>
+      <div class="tip-item">
+        <span class="tip-icon">✋</span>
+        <div class="tip-text"><strong>Manos y dedos:</strong> Las IAs tienen problemas con las manos — dedos extras, fusionados o con proporciones incorrectas son comunes.</div>
+      </div>
+      <div class="tip-item">
+        <span class="tip-icon">📊</span>
+        <div class="tip-text"><strong>Texturas y metadata:</strong> La piel puede verse demasiado suave, los fondos borrosos sin razon, y las imagenes IA no tienen datos EXIF de camara.</div>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="briefingBtn">Estoy Listo</button>
+</div>
+
+<!-- Game Screen -->
+<div class="screen" id="gameScreen">
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">1 / 10</div>
+  </div>
+
+  <div class="timer-wrap" id="timerWrap">
+    <div class="timer-ring">
+      <svg viewBox="0 0 56 56">
+        <circle class="bg" cx="28" cy="28" r="24"/>
+        <circle class="fg" id="timerCircle" cx="28" cy="28" r="24" stroke-dasharray="150.796" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-num" id="timerNum">30</div>
+    </div>
+  </div>
+
+  <div class="image-card" id="imageCard">
+    <img id="gameImage" src="" alt="Imagen para analizar" loading="eager"/>
+    <div class="image-meta">
+      <span class="image-category" id="imageCategoryBadge"></span>
+      <span class="image-difficulty" id="imageDifficulty"></span>
+    </div>
+  </div>
+
+  <!-- Clue Toolbar -->
+  <div class="toolbar" id="toolbar">
+    <button class="tool-btn" id="toolZoom" onclick="revealClue('zoom')">
+      <span class="tool-icon">🔍</span>Zoom
+    </button>
+    <button class="tool-btn" id="toolFace" onclick="revealClue('face')">
+      <span class="tool-icon">👁️</span>Rostro
+    </button>
+    <button class="tool-btn" id="toolHands" onclick="revealClue('hands')">
+      <span class="tool-icon">✋</span>Manos
+    </button>
+    <button class="tool-btn" id="toolMetadata" onclick="revealClue('metadata')">
+      <span class="tool-icon">📊</span>Metadata
+    </button>
+  </div>
+
+  <!-- Clue Cards -->
+  <div class="clue-cards" id="clueCards">
+    <div class="clue-card" id="clueZoom"></div>
+    <div class="clue-card" id="clueFace"></div>
+    <div class="clue-card" id="clueHands"></div>
+    <div class="clue-card" id="clueMetadata"></div>
+  </div>
+
+  <!-- Verdict Buttons -->
+  <div class="choices" id="choicesWrap">
+    <button class="btn-choice real" id="btnReal" onclick="submitVerdict(false)">
+      <span class="icon">📷</span> Foto Real
+    </button>
+    <button class="btn-choice ai" id="btnAI" onclick="submitVerdict(true)">
+      <span class="icon">🤖</span> Generada por IA
+    </button>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback" id="feedback">
+    <div class="feedback-header" id="feedbackHeader"></div>
+    <div class="feedback-text" id="feedbackText"></div>
+    <div class="feedback-signals" id="feedbackSignals"></div>
+    <div class="score-popup" id="scorePopup"></div>
+    <button class="btn-next" id="btnNext" onclick="nextImage()">Siguiente Imagen</button>
+  </div>
+</div>
+
+<!-- Result Screen -->
+<div class="screen" id="resultScreen">
+  <div class="result-hero">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-score" id="resultScore"></div>
+    <h2 class="result-title" id="resultTitle"></h2>
+    <p class="result-subtitle" id="resultSubtitle"></p>
+    <p class="result-detail" id="resultDetail"></p>
+  </div>
+  <div class="firebase-status" id="firebaseStatus"></div>
+  <div class="summary-grid" id="summaryGrid"></div>
+  <div class="tips-box">
+    <h3>Protegete de los deepfakes</h3>
+    <ul>
+      <li>Revisa siempre las manos y dedos — las IAs aun fallan con la anatomia</li>
+      <li>Busca reflejos inconsistentes en los ojos y pupilas de diferente tamano</li>
+      <li>Las texturas de piel demasiado perfectas o plastificadas son sospechosas</li>
+      <li>Verifica los datos EXIF: una foto real tiene camara, fecha y ubicacion</li>
+      <li>Los fondos con arquitectura imposible o transiciones borrosas delatan IA</li>
+      <li>Usa herramientas como Google Reverse Image Search para verificar fuentes</li>
+    </ul>
+  </div>
+  <div class="result-actions">
+    <button class="btn btn-primary" onclick="restartGame()">Jugar de nuevo</button>
+    <button class="btn btn-primary" style="background:linear-gradient(135deg,var(--green2),var(--green))" onclick="shareResult()">Compartir resultado</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// === XSS PREVENTION ===
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+// === FIREBASE CONFIG ===
+const firebaseConfig = {
+  apiKey: "AIzaSyAt5_tQnV-wxN4QQNbjJb9NPCYBBbIEtWc",
+  authDomain: "colombia50-phishing.firebaseapp.com",
+  databaseURL: "https://colombia50-phishing-default-rtdb.firebaseio.com",
+  projectId: "colombia50-phishing",
+  storageBucket: "colombia50-phishing.firebasestorage.app",
+  messagingSenderId: "969266960746",
+  appId: "1:969266960746:web:28f3f70e39a633d8c22d13",
+  measurementId: "G-GJS899Z0DK"
+};
+
+let firebaseReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('TU_PROYECTO')) {
+    firebaseReady = true;
+  }
+} catch(e) {
+  console.warn('Firebase no configurado:', e.message);
+}
+
+// === IMAGE DATA (10 images: 5 real + 5 AI) ===
+// NOTE: For a live workshop, replace URLs with actual curated images.
+// Real photos from Unsplash (CC), AI labels are for educational clue system.
+const IMAGES = [
+  {
+    id: 1,
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop&auto=format",
+    isAI: false,
+    category: "retrato",
+    difficulty: "facil",
+    source: "Unsplash / fotografia real",
+    clues: {
+      zoom: { signal: "green", text: "Textura de piel natural con poros visibles y grano fotografico consistente. Sin artifacts de generacion." },
+      face: { signal: "green", text: "Simetria facial natural — ligeras asimetrias normales en cejas y ojos. Reflejos coherentes en ambos ojos." },
+      hands: { signal: "green", text: "No visibles en esta imagen, pero el contorno del cuerpo tiene bordes definidos y naturales." },
+      metadata: { signal: "green", text: "EXIF: Canon EOS R5 | f/2.8 | ISO 400 | 85mm | 2023-06-15 | GPS: 4.7110° N, 74.0721° W" }
+    },
+    explanation: "Esta es una fotografia real tomada con una camara Canon. Los poros de la piel, el grano fotografico y los datos EXIF completos confirman su autenticidad.",
+    artifacts: []
+  },
+  {
+    id: 2,
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=400&fit=crop&auto=format",
+    isAI: true,
+    category: "retrato",
+    difficulty: "facil",
+    source: "Midjourney v6",
+    clues: {
+      zoom: { signal: "red", text: "Piel excesivamente suave y plastificada. Sin poros visibles ni imperfecciones naturales. Textura tipo 'airbrush'." },
+      face: { signal: "amber", text: "Rostro casi perfectamente simetrico — la naturaleza no produce simetria perfecta. Reflejos en los ojos ligeramente disparejos." },
+      hands: { signal: "red", text: "Zona de manos borrosa con transicion difusa hacia el fondo. Dedos con proporciones irregulares." },
+      metadata: { signal: "red", text: "Sin datos EXIF. No hay informacion de camara, lente, fecha ni ubicacion. Tipico de imagenes generadas por IA." }
+    },
+    explanation: "Esta imagen fue generada por Midjourney v6. Las senales principales son: piel sin poros ('efecto plastico'), simetria facial excesiva, y ausencia total de datos EXIF.",
+    artifacts: ["piel sin poros", "simetria excesiva", "sin EXIF"]
+  },
+  {
+    id: 3,
+    url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&h=400&fit=crop&auto=format",
+    isAI: false,
+    category: "paisaje",
+    difficulty: "facil",
+    source: "Unsplash / fotografia real",
+    clues: {
+      zoom: { signal: "green", text: "Textura natural del agua con reflejos coherentes. Los arboles tienen hojas individuales distinguibles." },
+      face: { signal: "green", text: "No aplica — imagen de paisaje sin rostros. Los elementos naturales tienen distribucion organica." },
+      hands: { signal: "green", text: "No aplica — paisaje natural. Las ramas y troncos tienen formas organicas sin repeticion artificial." },
+      metadata: { signal: "green", text: "EXIF: Nikon D850 | f/11 | ISO 100 | 24mm | 2022-09-20 | GPS: 37.7166° N, 119.6773° W (Yosemite)" }
+    },
+    explanation: "Fotografia real del Parque Nacional Yosemite. Los reflejos del agua son fisicamente coherentes, la vegetacion tiene variedad natural, y los datos EXIF incluyen GPS exacto.",
+    artifacts: []
+  },
+  {
+    id: 4,
+    url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=400&fit=crop&auto=format",
+    isAI: true,
+    category: "retrato",
+    difficulty: "medio",
+    source: "Stable Diffusion XL",
+    clues: {
+      zoom: { signal: "amber", text: "Textura de cabello con patrones que se repiten sutilmente. Transicion cabello-fondo ligeramente borrosa." },
+      face: { signal: "red", text: "Los aretes son asimetricos sin explicacion (uno tiene mas detalle que el otro). Linea del cabello demasiado perfecta." },
+      hands: { signal: "red", text: "Dedos parcialmente fusionados en la zona inferior de la imagen. Las unas tienen forma inconsistente." },
+      metadata: { signal: "red", text: "Sin datos EXIF. Resolucion estandar de modelo generativo (1024x1024 reescalada). Sin marca de camara." }
+    },
+    explanation: "Generada por Stable Diffusion XL. Aunque el rostro es muy realista, los aretes asimetricos, la fusion de dedos y la ausencia de EXIF la delatan.",
+    artifacts: ["aretes asimetricos", "dedos fusionados", "cabello repetitivo"]
+  },
+  {
+    id: 5,
+    url: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop&auto=format",
+    isAI: false,
+    category: "grupo",
+    difficulty: "medio",
+    source: "Unsplash / fotografia real",
+    clues: {
+      zoom: { signal: "green", text: "Cada persona tiene textura de ropa diferente y detallada. El desenfoque de fondo es optico (bokeh real), no artificial." },
+      face: { signal: "green", text: "Cada rostro tiene expresiones unicas y asimetria natural. Los dientes tienen irregularidades reales." },
+      hands: { signal: "green", text: "Manos visibles con 5 dedos correctos, articulaciones naturales y unas con detalles realistas." },
+      metadata: { signal: "green", text: "EXIF: Sony A7III | f/2.0 | ISO 800 | 35mm | 2023-11-02 | Flash: No | Modo: Manual" }
+    },
+    explanation: "Foto real de un grupo de amigos. Las IAs tienen grandes dificultades generando grupos: suelen fusionar extremidades, duplicar elementos y crear rostros 'clon'.",
+    artifacts: []
+  },
+  {
+    id: 6,
+    url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=400&fit=crop&auto=format",
+    isAI: true,
+    category: "retrato",
+    difficulty: "medio",
+    source: "DALL-E 3",
+    clues: {
+      zoom: { signal: "red", text: "La textura de la piel en el cuello tiene un patron repetitivo tipo 'parche'. Borde del cabello con halos luminosos artificiales." },
+      face: { signal: "amber", text: "Pupilas de tamano ligeramente diferente. La iluminacion en el rostro no coincide 100% con la direccion de la luz del fondo." },
+      hands: { signal: "red", text: "La zona de manos/brazos tiene transiciones suaves donde deberian haber bordes definidos (pliegues de piel)." },
+      metadata: { signal: "red", text: "Sin EXIF. Tamano de archivo sospechosamente uniforme. Sin informacion de lente, apertura o ISO." }
+    },
+    explanation: "Generada por DALL-E 3. Las pistas principales son: textura de piel con patron repetitivo, pupilas asimetricas y iluminacion inconsistente entre rostro y fondo.",
+    artifacts: ["textura repetitiva", "pupilas asimetricas", "iluminacion inconsistente"]
+  },
+  {
+    id: 7,
+    url: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600&h=400&fit=crop&auto=format",
+    isAI: false,
+    category: "objeto",
+    difficulty: "dificil",
+    source: "Unsplash / fotografia real",
+    clues: {
+      zoom: { signal: "green", text: "Las manecillas del reloj tienen reflejos metalicos coherentes con la fuente de luz. Micro-rayaduras visibles en el cristal." },
+      face: { signal: "green", text: "No aplica — objeto inanimado. Los numeros del dial tienen tipografia consistente y alineada." },
+      hands: { signal: "green", text: "No aplica. La cadena del reloj tiene eslabones individuales con reflejos independientes y coherentes." },
+      metadata: { signal: "green", text: "EXIF: Canon EOS 5D Mark IV | f/4.0 | ISO 200 | 100mm Macro | 2024-01-10 | Modo: Aperture Priority" }
+    },
+    explanation: "Foto macro real de un reloj. Los reflejos metalicos son fisicamente correctos, los micro-detalles como rayaduras son genuinos, y los datos EXIF corresponden a una camara macro.",
+    artifacts: []
+  },
+  {
+    id: 8,
+    url: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=600&h=400&fit=crop&auto=format",
+    isAI: true,
+    category: "paisaje",
+    difficulty: "dificil",
+    source: "Midjourney v6",
+    clues: {
+      zoom: { signal: "red", text: "Los cables del puente tienen grosor inconsistente y algunos se fusionan en la distancia de manera no fisica." },
+      face: { signal: "green", text: "No aplica — paisaje sin personas. Sin embargo, la bruma tiene un patron de degradado demasiado uniforme." },
+      hands: { signal: "amber", text: "No aplica directamente, pero los detalles estructurales del puente tienen repeticiones sospechosas en las vigas." },
+      metadata: { signal: "red", text: "Sin EXIF. La resolucion no corresponde a ningun formato de sensor de camara estandar." }
+    },
+    explanation: "Generada por Midjourney v6. Los paisajes IA son los mas dificiles de detectar, pero los detalles estructurales (cables, vigas) y la ausencia de EXIF la delatan.",
+    artifacts: ["cables inconsistentes", "vigas repetitivas", "bruma artificial"]
+  },
+  {
+    id: 9,
+    url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&h=400&fit=crop&auto=format",
+    isAI: true,
+    category: "retrato",
+    difficulty: "dificil",
+    source: "Midjourney v6",
+    clues: {
+      zoom: { signal: "amber", text: "Textura de piel casi perfecta pero con una suavidad sutil que carece del grano fotografico natural." },
+      face: { signal: "amber", text: "Rostro muy realista, pero el borde entre el cabello y la oreja izquierda tiene una transicion artificialmente suave." },
+      hands: { signal: "green", text: "Manos no visibles en esta toma, eliminando una de las pistas mas comunes de IA." },
+      metadata: { signal: "red", text: "Sin datos EXIF. Sin informacion de camara, lente, apertura, ISO ni ubicacion GPS." }
+    },
+    explanation: "Generada por Midjourney v6. Esta es de las mas dificiles: el modelo domina retratos, pero la ausencia de EXIF y la transicion cabello-oreja artificial la revelan.",
+    artifacts: ["suavidad artificial", "transicion cabello-oreja", "sin EXIF"]
+  },
+  {
+    id: 10,
+    url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&h=400&fit=crop&auto=format",
+    isAI: false,
+    category: "retrato",
+    difficulty: "medio",
+    source: "Unsplash / fotografia real",
+    clues: {
+      zoom: { signal: "green", text: "Grano fotografico natural y consistente en toda la imagen. Poros y lineas de expresion visibles." },
+      face: { signal: "green", text: "Asimetria facial natural: sonrisa ligeramente mas elevada de un lado. Reflejos coherentes en ambos ojos." },
+      hands: { signal: "green", text: "No completamente visibles, pero los hombros y cuello tienen anatomia consistente y natural." },
+      metadata: { signal: "green", text: "EXIF: Fujifilm X-T4 | f/1.8 | ISO 320 | 56mm | 2023-08-22 | Balance de blancos: Luz natural" }
+    },
+    explanation: "Foto real con camara Fujifilm. La sonrisa asimetrica, los poros visibles y los datos EXIF completos confirman autenticidad. Las fotos reales siempre tienen imperfecciones.",
+    artifacts: []
+  }
+];
+
+// === CONSTANTS ===
+const TIMER_DURATION = 30;
+const MAX_SCORE_PER_IMAGE = 150;
+const TOTAL_IMAGES = IMAGES.length;
+const MAX_TOTAL = TOTAL_IMAGES * MAX_SCORE_PER_IMAGE; // 1500
+
+// === GAME STATE ===
+let playerAlias = '';
+let currentIndex = 0;
+let totalScore = 0;
+let imageResults = [];
+let shuffledImages = [];
+let soundOn = true;
+let timerRAF = null;
+let timerStartTime = 0;
+let cluesUsedThisRound = 0;
+let cluesRevealedThisRound = {};
+let gameStartTime = 0;
+let roundStartTime = 0;
+
+// === AUDIO (Web Audio API) ===
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  if (!soundOn) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    gain.gain.value = 0.12;
+
+    if (type === 'correct') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'tick') {
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.05;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.08);
+    } else if (type === 'reveal') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(520, audioCtx.currentTime + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'complete') {
+      // Celebration: three ascending notes
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.3);
+      osc.frequency.setValueAtTime(1047, audioCtx.currentTime + 0.45);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.7);
+    }
+  } catch(e) {}
+}
+
+// === SHUFFLE ===
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// === DOM REFS ===
+const $ = id => document.getElementById(id);
+
+// === SCORING ===
+function calculateImageScore(correct, cluesUsed, timeMs) {
+  if (!correct) return 0;
+  let score = 100;
+  if (cluesUsed === 0) score += 30;
+  else if (cluesUsed === 1) score += 20;
+  else if (cluesUsed === 2) score += 10;
+  const timeSec = timeMs / 1000;
+  if (timeSec < 10) score += 20;
+  else if (timeSec < 20) score += 10;
+  return score;
+}
+
+// === INIT ===
+const aliasInput = $('playerAlias');
+const startBtn = $('startBtn');
+
+aliasInput.addEventListener('input', () => {
+  startBtn.disabled = aliasInput.value.trim().length < 2;
+});
+aliasInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !startBtn.disabled) showScreen('briefingScreen');
+});
+startBtn.addEventListener('click', () => showScreen('briefingScreen'));
+
+$('briefingBtn').addEventListener('click', startGame);
+
+$('soundBtn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  $('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn && audioCtx.state === 'suspended') audioCtx.resume();
+});
+
+// === SCREEN MANAGEMENT ===
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// === START GAME ===
+function startGame() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playerAlias = aliasInput.value.trim();
+  currentIndex = 0;
+  totalScore = 0;
+  imageResults = [];
+  gameStartTime = Date.now();
+  shuffledImages = shuffle(IMAGES);
+  showScreen('gameScreen');
+  $('progressWrap').style.display = 'block';
+  $('timerWrap').style.display = 'block';
+  loadImage();
+}
+
+// === GAME LOOP ===
+function loadImage() {
+  const img = shuffledImages[currentIndex];
+
+  // Reset round state
+  cluesUsedThisRound = 0;
+  cluesRevealedThisRound = {};
+  roundStartTime = Date.now();
+
+  // Update progress
+  $('progressFill').style.width = ((currentIndex) / shuffledImages.length * 100) + '%';
+  $('progressText').textContent = (currentIndex + 1) + ' / ' + shuffledImages.length;
+
+  // Reset UI
+  $('feedback').style.display = 'none';
+  $('choicesWrap').style.display = 'flex';
+  $('btnReal').disabled = false;
+  $('btnAI').disabled = false;
+  $('toolbar').style.display = 'flex';
+
+  // Reset clue cards
+  ['clueZoom', 'clueFace', 'clueHands', 'clueMetadata'].forEach(id => {
+    $(id).className = 'clue-card';
+    $(id).innerHTML = '';
+  });
+
+  // Reset tool buttons
+  ['toolZoom', 'toolFace', 'toolHands', 'toolMetadata'].forEach(id => {
+    $(id).classList.remove('used');
+  });
+
+  // Fill image
+  const gameImg = $('gameImage');
+  gameImg.src = img.url;
+  gameImg.alt = img.category + ' - Imagen ' + (currentIndex + 1);
+  gameImg.onerror = function() {
+    this.style.display = 'none';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'img-placeholder';
+    placeholder.textContent = img.category === 'retrato' ? '👤' : img.category === 'paisaje' ? '🏔️' : img.category === 'grupo' ? '👥' : '📦';
+    this.parentNode.insertBefore(placeholder, this);
+  };
+  gameImg.style.display = 'block';
+  // Remove any previous placeholder
+  const prevPlaceholder = $('imageCard').querySelector('.img-placeholder');
+  if (prevPlaceholder) prevPlaceholder.remove();
+
+  // Category badge
+  const badge = $('imageCategoryBadge');
+  badge.className = 'image-category ' + img.category;
+  badge.textContent = img.category.toUpperCase();
+
+  // Difficulty
+  const diffMap = { facil: 'FACIL', medio: 'MEDIO', dificil: 'DIFICIL' };
+  $('imageDifficulty').textContent = diffMap[img.difficulty] || img.difficulty;
+
+  // Animate
+  gsap.fromTo($('imageCard'), { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+  gsap.fromTo($('toolbar'), { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, delay: 0.15, ease: 'power2.out' });
+  gsap.fromTo($('choicesWrap'), { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, delay: 0.25, ease: 'power2.out' });
+
+  startTimer();
+}
+
+// === TIMER ===
+function startTimer() {
+  cancelAnimationFrame(timerRAF);
+  timerStartTime = Date.now();
+  const circle = $('timerCircle');
+  const circumference = 2 * Math.PI * 24;
+  circle.style.strokeDashoffset = '0';
+  circle.setAttribute('class', 'fg');
+  $('timerNum').textContent = TIMER_DURATION;
+
+  let lastTickAt = TIMER_DURATION;
+
+  function tick() {
+    const elapsed = (Date.now() - timerStartTime) / 1000;
+    const remaining = Math.max(0, TIMER_DURATION - elapsed);
+    const secs = Math.ceil(remaining);
+
+    $('timerNum').textContent = secs;
+    const offset = circumference * (1 - remaining / TIMER_DURATION);
+    circle.style.strokeDashoffset = offset;
+
+    if (secs <= 5) {
+      circle.setAttribute('class', 'fg danger');
+      if (secs < lastTickAt) { playSound('tick'); lastTickAt = secs; }
+    } else if (secs <= 10) {
+      circle.setAttribute('class', 'fg warn');
+    } else {
+      circle.setAttribute('class', 'fg');
+    }
+
+    if (remaining <= 0) {
+      autoTimeout();
+      return;
+    }
+    timerRAF = requestAnimationFrame(tick);
+  }
+  timerRAF = requestAnimationFrame(tick);
+}
+
+function autoTimeout() {
+  cancelAnimationFrame(timerRAF);
+  $('btnReal').disabled = true;
+  $('btnAI').disabled = true;
+  const img = shuffledImages[currentIndex];
+  const timeMs = TIMER_DURATION * 1000;
+  const roundScore = 0;
+  imageResults.push({
+    imageId: img.id,
+    correct: false,
+    timedOut: true,
+    cluesUsed: cluesUsedThisRound,
+    timeMs: timeMs,
+    score: roundScore
+  });
+  showFeedback(false, img, true, roundScore);
+}
+
+// === CLUE REVEAL ===
+function revealClue(type) {
+  if (cluesRevealedThisRound[type]) return;
+  const img = shuffledImages[currentIndex];
+  const clue = img.clues[type];
+  if (!clue) return;
+
+  cluesRevealedThisRound[type] = true;
+  cluesUsedThisRound++;
+
+  // Mark button as used
+  const toolBtnId = { zoom: 'toolZoom', face: 'toolFace', hands: 'toolHands', metadata: 'toolMetadata' };
+  $(toolBtnId[type]).classList.add('used');
+
+  // Show clue card
+  const cardId = { zoom: 'clueZoom', face: 'clueFace', hands: 'clueHands', metadata: 'clueMetadata' };
+  const card = $(cardId[type]);
+  card.className = 'clue-card visible ' + clue.signal;
+  card.innerHTML = '<span class="clue-signal"></span><span>' + escapeHtml(clue.text) + '</span>';
+
+  playSound('reveal');
+
+  // If zoom, also open the zoom modal
+  if (type === 'zoom') {
+    openZoom();
+  }
+}
+
+// === ZOOM MODAL ===
+function openZoom() {
+  const img = shuffledImages[currentIndex];
+  $('zoomImg').src = img.url;
+  $('zoomOverlay').classList.add('active');
+  $('zoomLens').style.display = 'none';
+}
+
+function closeZoom() {
+  $('zoomOverlay').classList.remove('active');
+  $('zoomLens').style.display = 'none';
+}
+
+$('zoomClose').addEventListener('click', closeZoom);
+$('zoomOverlay').addEventListener('click', e => {
+  if (e.target === $('zoomOverlay')) closeZoom();
+});
+
+// Lens follows cursor
+$('zoomOverlay').addEventListener('mousemove', e => {
+  const zoomImg = $('zoomImg');
+  const rect = zoomImg.getBoundingClientRect();
+
+  // Only show lens when over the image
+  if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+    $('zoomLens').style.display = 'none';
+    return;
+  }
+
+  const lens = $('zoomLens');
+  lens.style.display = 'block';
+
+  const lensSize = 160;
+  const scale = 3;
+
+  lens.style.left = (e.clientX - lensSize / 2) + 'px';
+  lens.style.top = (e.clientY - lensSize / 2) + 'px';
+
+  const pctX = (e.clientX - rect.left) / rect.width;
+  const pctY = (e.clientY - rect.top) / rect.height;
+
+  const bgW = rect.width * scale;
+  const bgH = rect.height * scale;
+  const bgX = -(pctX * bgW - lensSize / 2);
+  const bgY = -(pctY * bgH - lensSize / 2);
+
+  lens.style.backgroundImage = 'url(' + zoomImg.src + ')';
+  lens.style.backgroundSize = bgW + 'px ' + bgH + 'px';
+  lens.style.backgroundPosition = bgX + 'px ' + bgY + 'px';
+});
+
+// Touch support for zoom
+$('zoomOverlay').addEventListener('touchmove', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const zoomImg = $('zoomImg');
+  const rect = zoomImg.getBoundingClientRect();
+
+  if (touch.clientX < rect.left || touch.clientX > rect.right || touch.clientY < rect.top || touch.clientY > rect.bottom) {
+    $('zoomLens').style.display = 'none';
+    return;
+  }
+
+  const lens = $('zoomLens');
+  lens.style.display = 'block';
+  const lensSize = 160;
+  const scale = 3;
+
+  lens.style.left = (touch.clientX - lensSize / 2) + 'px';
+  lens.style.top = (touch.clientY - lensSize / 2) + 'px';
+
+  const pctX = (touch.clientX - rect.left) / rect.width;
+  const pctY = (touch.clientY - rect.top) / rect.height;
+
+  const bgW = rect.width * scale;
+  const bgH = rect.height * scale;
+  const bgX = -(pctX * bgW - lensSize / 2);
+  const bgY = -(pctY * bgH - lensSize / 2);
+
+  lens.style.backgroundImage = 'url(' + zoomImg.src + ')';
+  lens.style.backgroundSize = bgW + 'px ' + bgH + 'px';
+  lens.style.backgroundPosition = bgX + 'px ' + bgY + 'px';
+}, { passive: false });
+
+// ESC to close zoom
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeZoom();
+});
+
+// === VERDICT ===
+function submitVerdict(chosenAI) {
+  cancelAnimationFrame(timerRAF);
+  const timeMs = Date.now() - roundStartTime;
+  $('btnReal').disabled = true;
+  $('btnAI').disabled = true;
+
+  const img = shuffledImages[currentIndex];
+  const correct = chosenAI === img.isAI;
+  const roundScore = calculateImageScore(correct, cluesUsedThisRound, timeMs);
+  if (correct) totalScore += roundScore;
+
+  imageResults.push({
+    imageId: img.id,
+    correct: correct,
+    timedOut: false,
+    cluesUsed: cluesUsedThisRound,
+    timeMs: timeMs,
+    score: roundScore
+  });
+
+  showFeedback(correct, img, false, roundScore);
+  window.haptics?.trigger(correct ? 'success' : 'error');
+}
+
+// === FEEDBACK ===
+function showFeedback(correct, img, timedOut, roundScore) {
+  const fb = $('feedback');
+  fb.style.display = 'block';
+  if (timedOut) fb.className = 'feedback timeout';
+  else fb.className = 'feedback ' + (correct ? 'correct' : 'wrong');
+
+  $('choicesWrap').style.display = 'none';
+  $('toolbar').style.display = 'none';
+
+  // Header
+  let headerText;
+  if (timedOut) headerText = '⏱️ Tiempo agotado';
+  else if (correct) headerText = '✅ Correcto!';
+  else headerText = '❌ Incorrecto';
+  $('feedbackHeader').textContent = headerText;
+
+  // Explanation
+  const typeLabel = img.isAI ? '🤖 Generada por IA' : '📷 Foto real';
+  $('feedbackText').textContent = typeLabel + ' — ' + img.explanation;
+
+  // Signal dots for all clues
+  const signalsEl = $('feedbackSignals');
+  signalsEl.innerHTML = '';
+  const clueNames = { zoom: 'Zoom', face: 'Rostro', hands: 'Manos', metadata: 'Metadata' };
+  Object.entries(img.clues).forEach(([key, clue]) => {
+    const row = document.createElement('div');
+    row.className = 'feedback-signal';
+    row.innerHTML = '<span class="dot ' + clue.signal + '"></span><strong>' + clueNames[key] + ':</strong> ' + escapeHtml(clue.text);
+    signalsEl.appendChild(row);
+  });
+
+  // Score popup
+  const popup = $('scorePopup');
+  if (roundScore > 0) {
+    popup.className = 'score-popup';
+    popup.textContent = '+' + roundScore + ' pts';
+  } else {
+    popup.className = 'score-popup zero';
+    popup.textContent = '+0 pts';
+  }
+
+  // Next button text
+  $('btnNext').textContent = currentIndex < shuffledImages.length - 1 ? 'Siguiente Imagen' : 'Ver Resultados';
+
+  playSound(correct ? 'correct' : 'wrong');
+  gsap.fromTo(fb, { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' });
+}
+
+function nextImage() {
+  currentIndex++;
+  if (currentIndex >= shuffledImages.length) {
+    showResults();
+  } else {
+    loadImage();
+  }
+}
+
+// === RESULTS ===
+function showResults() {
+  confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+  setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { y: 0.5 } }), 250);
+  window.haptics?.trigger('success');
+  cancelAnimationFrame(timerRAF);
+  $('progressWrap').style.display = 'none';
+  $('timerWrap').style.display = 'none';
+  showScreen('resultScreen');
+
+  playSound('complete');
+
+  const pct = Math.round((totalScore / MAX_TOTAL) * 100);
+  const correctCount = imageResults.filter(r => r.correct).length;
+  const totalSecs = Math.round((Date.now() - gameStartTime) / 1000);
+
+  let icon, title, subtitle;
+  if (pct >= 90) {
+    icon = '🦅'; title = 'Ojo de Halcon'; subtitle = 'Impresionante! Detectas deepfakes como un experto en forense digital.';
+  } else if (pct >= 70) {
+    icon = '🔍'; title = 'Detective Digital'; subtitle = 'Excelente ojo critico! Sabes analizar imagenes sospechosas.';
+  } else if (pct >= 50) {
+    icon = '🛡️'; title = 'Aprendiz Vigilante'; subtitle = 'Vas por buen camino. Practica con las herramientas de analisis.';
+  } else {
+    icon = '📚'; title = 'En Formacion'; subtitle = 'No te preocupes! Hoy aprendiste las claves para detectar IA.';
+  }
+
+  $('resultIcon').textContent = icon;
+  $('resultTitle').textContent = title;
+  $('resultSubtitle').textContent = escapeHtml(playerAlias) + ', ' + subtitle;
+  $('resultDetail').textContent = correctCount + '/10 correctas · ' + totalScore + '/' + MAX_TOTAL + ' pts · ' + formatTime(totalSecs);
+
+  // Animate score counter
+  const scoreEl = $('resultScore');
+  scoreEl.textContent = '0%';
+  gsap.to({ val: 0 }, {
+    val: pct,
+    duration: 1.2,
+    ease: 'power2.out',
+    onUpdate: function() {
+      scoreEl.textContent = Math.round(this.targets()[0].val) + '%';
+    }
+  });
+
+  // Summary grid (mini cards)
+  const grid = $('summaryGrid');
+  grid.innerHTML = '';
+  imageResults.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'summary-card ' + (r.correct ? 'ok' : 'fail');
+    const origImg = shuffledImages[i];
+    card.innerHTML =
+      '<span class="sc-icon">' + (r.correct ? '✅' : (r.timedOut ? '⏱️' : '❌')) + '</span>' +
+      '<span class="sc-num">#' + (i + 1) + '</span>';
+    grid.appendChild(card);
+    gsap.fromTo(card, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, delay: 0.05 * i, ease: 'back.out(1.5)' });
+  });
+
+  // Animate sections
+  gsap.fromTo('.result-hero', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' });
+  gsap.fromTo('.tips-box', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.5, ease: 'power2.out' });
+  gsap.fromTo('.result-actions', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, delay: 0.7, ease: 'power2.out' });
+
+  // Send to Firebase
+  sendToFirebase(totalSecs);
+}
+
+function formatTime(secs) {
+  if (!secs || secs <= 0) return '--';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+// === FIREBASE ===
+function sendToFirebase(totalSecs) {
+  const statusEl = $('firebaseStatus');
+  if (!firebaseReady) {
+    statusEl.textContent = 'Firebase no configurado — resultados solo locales';
+    statusEl.className = 'firebase-status';
+    return;
+  }
+
+  const pct = Math.round((totalScore / MAX_TOTAL) * 100);
+
+  // Build per-image results
+  const imgResults = {};
+  imageResults.forEach(r => {
+    imgResults['img_' + r.imageId] = {
+      correct: r.correct,
+      cluesUsed: r.cluesUsed,
+      timeMs: r.timeMs
+    };
+  });
+
+  const SESSION_ID = localStorage.getItem('fintech_session') || 'workshop-2026';
+  const safeAlias = playerAlias.replace(/[.#$[\]\/]/g, '_').substring(0, 20);
+  const payload = {
+    alias: escapeHtml(playerAlias),
+    deepfakeScore: totalScore,
+    deepfakeTotal: MAX_TOTAL,
+    deepfakePct: pct,
+    deepfakeTime: totalSecs,
+    deepfakeResults: imgResults,
+    deepfakeTimestamp: firebase.database.ServerValue.TIMESTAMP,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  const ref = firebase.database().ref('sessions/' + SESSION_ID + '/results/' + safeAlias);
+  ref.update(payload)
+    .then(() => {
+      statusEl.textContent = '✓ Resultado enviado al dashboard en vivo';
+      statusEl.className = 'firebase-status success';
+    })
+    .catch(err => {
+      statusEl.textContent = 'Error enviando resultado: ' + err.message;
+      statusEl.className = 'firebase-status error';
+    });
+}
+
+// === RESTART ===
+function restartGame() {
+  showScreen('startScreen');
+  aliasInput.value = playerAlias;
+  startBtn.disabled = false;
+}
+
+// === SHARE ===
+function shareResult() {
+  const pct = Math.round((totalScore / MAX_TOTAL) * 100);
+  const correctCount = imageResults.filter(r => r.correct).length;
+  let title;
+  if (pct >= 90) title = 'Ojo de Halcon';
+  else if (pct >= 70) title = 'Detective Digital';
+  else if (pct >= 50) title = 'Aprendiz Vigilante';
+  else title = 'En Formacion';
+
+  const text = '🎭 Deepfake Detective\n' +
+    correctCount + '/10 correctas — ' + pct + '% — ' + title + '\n' +
+    'Score: ' + totalScore + '/' + MAX_TOTAL + ' pts\n' +
+    'Taller Colombia 5.0 🇨🇴\n' +
+    '#Colombia50 #Deepfakes #IA';
+
+  if (navigator.share) {
+    navigator.share({ title: 'Deepfake Detective', text: text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.result-actions button:last-child');
+      const orig = btn.textContent;
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = orig, 2000);
+    }).catch(() => {});
+  }
+}
+
+// === HAMBURGER MENU ===
+const hamburgerBtn = document.getElementById('hamburger');
+const navEl = document.getElementById('nav');
+hamburgerBtn.addEventListener('click', () => {
+  hamburgerBtn.classList.toggle('open');
+  navEl.classList.toggle('open');
+});
+</script>
+<script type="module">
+  import WebHaptics from 'https://cdn.jsdelivr.net/npm/web-haptics@0.0.6/+esm';
+  try { window.haptics = new WebHaptics(); } catch(e) { window.haptics = null; }
+</script>
+</body>
+</html>

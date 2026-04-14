@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Investigador Financiero — Colombia 5.0</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕵️</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#7012B0;--purple2:#8B2FC9;--purple-light:#9B4DCA;
+  --green:#19FF6C;--green2:#14D957;
+  --dark:#0F0A1E;--dark2:#1a1030;--card:#1E1535;
+  --text:#F2F2F2;--muted:#9CA3AF;
+  --border:rgba(112,18,176,0.3);--glow:rgba(112,18,176,0.4);
+  --red:#EF4444;--amber:#F59E0B;--blue:#3B82F6;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
+  min-height:100vh;overflow-x:hidden;position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%,rgba(112,18,176,0.18) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%,rgba(25,255,108,0.10) 0%,transparent 55%),
+    radial-gradient(ellipse 40% 60% at 50% 50%,rgba(124,58,237,0.08) 0%,transparent 70%);
+}
+
+/* Header */
+.game-header{
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+  background:rgba(15,10,30,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  position:fixed;top:0;left:0;right:0;z-index:100;height:56px;
+}
+.game-header h1{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--purple-light);flex-shrink:0}
+.game-header .tag{
+  display:inline-block;font-family:'Space Mono',monospace;font-size:.6rem;
+  background:rgba(112,18,176,0.25);color:var(--purple-light);
+  padding:2px 8px;border-radius:20px;flex-shrink:0;
+}
+.scenario-indicator{
+  display:inline-block;font-family:'Space Mono',monospace;font-size:.6rem;
+  background:rgba(25,255,108,0.2);color:var(--green);
+  padding:2px 8px;border-radius:20px;margin-left:6px;
+}
+.game-header nav{display:flex;gap:.25rem}
+.game-header nav a{
+  font-size:.78rem;font-weight:500;color:var(--muted);
+  padding:.35rem .7rem;border-radius:6px;text-decoration:none;
+  transition:all .2s;white-space:nowrap;
+}
+.game-header nav a:hover,.game-header nav a.active{
+  color:var(--text);background:rgba(112,18,176,0.25);
+}
+.hamburger{
+  display:none;flex-direction:column;gap:5px;cursor:pointer;
+  padding:8px;z-index:200;background:none;border:none;
+}
+.hamburger span{
+  display:block;width:24px;height:2px;background:var(--text);
+  border-radius:2px;transition:all .3s;
+}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .game-header nav{
+    position:fixed;top:56px;left:0;right:0;
+    background:rgba(15,10,30,0.97);backdrop-filter:blur(20px);
+    flex-direction:column;padding:1rem;gap:.5rem;
+    transform:translateY(-120%);transition:transform .3s ease;
+    border-bottom:1px solid var(--border);
+  }
+  .game-header nav.open{transform:translateY(0)}
+  .game-header nav a{padding:.8rem 1rem;font-size:.9rem}
+  .game-header .tag{display:none}
+}
+
+/* Container */
+.container{
+  max-width:720px;margin:0 auto;padding:1rem;position:relative;z-index:1;
+  min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+  padding-top:75px;padding-bottom:1rem;
+}
+
+/* Screens */
+.screen{display:none;flex-direction:column;align-items:center;gap:1.2rem}
+.screen.active{display:flex}
+
+/* Buttons */
+.btn{
+  padding:.85rem 2.2rem;border:none;border-radius:12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;
+  transition:transform .2s,box-shadow .3s,background .3s;
+  display:inline-flex;align-items:center;gap:.5rem;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;
+  box-shadow:0 4px 20px rgba(112,18,176,0.35);
+}
+.btn-primary:hover{box-shadow:0 6px 28px rgba(112,18,176,0.5)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-danger{background:linear-gradient(135deg,#DC2626,var(--red));color:#fff;box-shadow:0 4px 20px rgba(239,68,68,0.3)}
+.btn-success{background:linear-gradient(135deg,var(--green2),var(--green));color:#fff;box-shadow:0 4px 20px rgba(25,255,108,0.3)}
+.btn-sm{padding:.6rem 1.4rem;font-size:.85rem;border-radius:10px}
+
+/* Start screen */
+.hero-icon{font-size:4rem;margin-bottom:-.5rem}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(1.5rem,5vw,2.2rem);text-align:center;line-height:1.2}
+.hero-title .accent{color:var(--green)}
+.hero-sub{color:var(--muted);text-align:center;max-width:500px;font-size:.9rem;line-height:1.6}
+.input-group{width:100%;max-width:360px}
+.input-group label{font-size:.8rem;color:var(--muted);margin-bottom:6px;display:block}
+.input-group input{
+  width:100%;padding:.75rem 1rem;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;
+  outline:none;transition:border .3s,box-shadow .3s;
+}
+.input-group input:focus{border-color:var(--purple-light);box-shadow:0 0 0 3px rgba(155,77,202,0.15)}
+.input-group input::placeholder{color:rgba(156,163,175,.5)}
+
+/* Briefing */
+.briefing-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem;width:100%;max-width:600px;position:relative;overflow:hidden;
+}
+.briefing-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--purple),var(--green));
+}
+.briefing-card h3{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:.75rem;color:var(--purple-light)}
+.briefing-card p{color:var(--muted);font-size:.9rem;line-height:1.65;margin-bottom:.5rem}
+.briefing-card ul{list-style:none;margin:.75rem 0}
+.briefing-card li{font-size:.85rem;color:var(--muted);line-height:1.5;padding:.4rem 0 .4rem 1.5rem;position:relative}
+.briefing-card li::before{content:'';position:absolute;left:0;top:12px;width:8px;height:8px;border-radius:50%;background:var(--purple-light)}
+
+/* Chat screen */
+.chat-container{
+  width:100%;max-width:600px;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;height:calc(100vh - 140px);max-height:650px;
+}
+.chat-header{
+  padding:.75rem 1rem;background:rgba(112,18,176,0.15);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;
+  flex-shrink:0;
+}
+.chat-avatar{
+  width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;flex-shrink:0;
+}
+.chat-avatar.scam{background:rgba(239,68,68,0.2);border:2px solid rgba(239,68,68,0.3)}
+.chat-avatar.legit{background:rgba(25,255,108,0.2);border:2px solid rgba(25,255,108,0.3)}
+.chat-name{font-weight:700;font-size:.9rem}
+.chat-status{font-size:.7rem;color:var(--green);display:flex;align-items:center;gap:4px}
+.chat-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.chat-messages{
+  flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem;
+  scroll-behavior:smooth;
+}
+.msg{
+  max-width:85%;padding:.75rem 1rem;border-radius:14px;font-size:.88rem;line-height:1.55;
+  animation:msgIn .35s ease-out;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.agent{
+  align-self:flex-start;background:rgba(112,18,176,0.2);border:1px solid rgba(112,18,176,0.15);
+  border-bottom-left-radius:4px;color:var(--text);
+}
+.msg.user{
+  align-self:flex-end;background:linear-gradient(135deg,var(--purple),var(--purple2));
+  border-bottom-right-radius:4px;color:#fff;
+}
+.msg.system{
+  align-self:center;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);
+  border-radius:10px;color:var(--amber);font-size:.78rem;text-align:center;
+  max-width:90%;font-family:'Space Mono',monospace;
+}
+.typing-indicator{
+  align-self:flex-start;padding:.75rem 1rem;background:rgba(112,18,176,0.15);
+  border-radius:14px;border-bottom-left-radius:4px;display:flex;gap:4px;
+  align-items:center;
+}
+.typing-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--purple-light);
+  animation:typingBounce 1.4s infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+.chat-input-area{
+  padding:.75rem;border-top:1px solid var(--border);display:flex;gap:.5rem;
+  background:rgba(15,10,30,0.5);flex-shrink:0;
+}
+.chat-input{
+  flex:1;padding:.7rem 1rem;background:var(--dark2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;
+  outline:none;resize:none;min-height:42px;max-height:100px;
+}
+.chat-input:focus{border-color:var(--purple-light)}
+.chat-input::placeholder{color:rgba(156,163,175,.5)}
+.chat-send{
+  width:42px;height:42px;border-radius:10px;border:none;
+  background:var(--purple);color:#fff;font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.chat-send:hover{background:var(--purple2)}
+.chat-send:disabled{opacity:.4;cursor:not-allowed}
+
+.chat-footer-actions{
+  padding:.5rem .75rem;display:flex;justify-content:center;gap:.5rem;
+  border-top:1px solid var(--border);background:rgba(15,10,30,0.3);flex-shrink:0;
+}
+
+/* Investigation screen */
+.invest-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:.75rem;
+  width:100%;max-width:600px;
+}
+.invest-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:1rem;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;
+}
+.invest-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--border);transition:background .3s;
+}
+.invest-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(112,18,176,0.2)}
+.invest-card.revealed{cursor:default}
+.invest-card.revealed::before{background:var(--signal-color,var(--purple-light))}
+.invest-card .card-icon{font-size:1.8rem;margin-bottom:.5rem}
+.invest-card .card-title{font-family:'Space Mono',monospace;font-size:.75rem;font-weight:700;color:var(--purple-light);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.05em}
+.invest-card .card-preview{font-size:.8rem;color:var(--muted);line-height:1.5;display:none}
+.invest-card.revealed .card-preview{display:block}
+.invest-card .card-hint{font-size:.75rem;color:rgba(156,163,175,.5);font-style:italic}
+.invest-card.revealed .card-hint{display:none}
+.invest-card.full-width{grid-column:1/-1}
+
+.signal-badge{
+  display:inline-block;font-family:'Space Mono',monospace;font-size:.65rem;
+  padding:2px 8px;border-radius:10px;font-weight:700;margin-top:.5rem;
+}
+.signal-badge.red{background:rgba(239,68,68,0.15);color:var(--red)}
+.signal-badge.green{background:rgba(25,255,108,0.15);color:var(--green)}
+.signal-badge.amber{background:rgba(245,158,11,0.15);color:var(--amber)}
+
+.invest-counter{
+  font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);
+  text-align:center;
+}
+
+/* Verdict screen */
+.verdict-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem;width:100%;max-width:500px;text-align:center;
+}
+.verdict-card h3{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:.75rem}
+.verdict-card p{color:var(--muted);font-size:.88rem;line-height:1.5;margin-bottom:1.2rem}
+.verdict-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+
+/* Feedback screen */
+.feedback-panel{
+  width:100%;max-width:600px;background:var(--card);border-radius:16px;
+  border:1px solid var(--border);overflow:hidden;
+}
+.feedback-result{
+  padding:1.5rem;text-align:center;
+}
+.feedback-result.correct{background:rgba(25,255,108,0.08);border-bottom:2px solid rgba(25,255,108,0.3)}
+.feedback-result.wrong{background:rgba(239,68,68,0.08);border-bottom:2px solid rgba(239,68,68,0.3)}
+.feedback-result .icon{font-size:3rem}
+.feedback-result h3{font-family:'DM Serif Display',serif;font-size:1.3rem;margin:.5rem 0 .25rem}
+.feedback-result.correct h3{color:var(--green)}
+.feedback-result.wrong h3{color:var(--red)}
+.feedback-result p{color:var(--muted);font-size:.85rem}
+.signal-list{padding:1rem 1.5rem;display:flex;flex-direction:column;gap:.6rem}
+.signal-item{
+  display:flex;align-items:flex-start;gap:.75rem;padding:.6rem;
+  background:rgba(255,255,255,0.02);border-radius:10px;
+}
+.signal-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;
+}
+.signal-dot.red{background:var(--red)}
+.signal-dot.green{background:var(--green)}
+.signal-dot.amber{background:var(--amber)}
+.signal-text{font-size:.82rem;color:var(--muted);line-height:1.5}
+.signal-text strong{color:var(--text)}
+.feedback-actions{padding:1rem 1.5rem;text-align:center;border-top:1px solid var(--border)}
+
+/* Results screen */
+.result-hero{text-align:center}
+.result-icon{font-size:4rem}
+.result-score{
+  font-family:'Space Mono',monospace;font-size:3.5rem;font-weight:700;
+  background:linear-gradient(135deg,var(--purple-light),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-top:.25rem}
+.result-subtitle{color:var(--muted);font-size:.88rem;margin-top:.25rem}
+.firebase-status{
+  font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);
+  text-align:center;margin-top:.5rem;
+}
+.firebase-status.success{color:var(--green)}
+.firebase-status.error{color:var(--red)}
+
+.scenario-summary{
+  width:100%;max-width:600px;display:flex;flex-direction:column;gap:.5rem;
+}
+.scenario-summary-item{
+  display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;
+  background:var(--card);border-radius:12px;border:1px solid var(--border);font-size:.85rem;
+}
+.scenario-summary-item .s-icon{font-size:1.3rem;flex-shrink:0}
+.scenario-summary-item .s-name{font-weight:700;flex:1}
+.scenario-summary-item .s-result{
+  font-family:'Space Mono',monospace;font-size:.7rem;font-weight:700;
+  padding:3px 8px;border-radius:6px;flex-shrink:0;
+}
+.scenario-summary-item .s-result.ok{background:rgba(25,255,108,0.15);color:var(--green)}
+.scenario-summary-item .s-result.fail{background:rgba(239,68,68,0.15);color:var(--red)}
+
+.result-actions{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+
+/* Sound toggle */
+.sound-toggle{
+  position:fixed;bottom:1rem;right:1rem;z-index:100;
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--border);
+  background:var(--card);color:var(--muted);font-size:1.2rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s;backdrop-filter:blur(10px);
+}
+.sound-toggle:hover{background:var(--dark2)}
+
+/* Responsive */
+@media(max-width:480px){
+  .container{padding:.75rem;padding-top:70px}
+  .chat-container{height:calc(100vh - 120px);max-height:none;border-radius:12px}
+  .invest-grid{grid-template-columns:1fr}
+  .invest-card.full-width{grid-column:auto}
+  .verdict-buttons{flex-direction:column}
+  .verdict-buttons .btn{width:100%}
+  .result-score{font-size:2.8rem}
+  .briefing-card{padding:1.1rem}
+  .msg{max-width:90%}
+}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--purple);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="game-header">
+  <h1><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/5/Escudo_UD.svg/200px-Escudo_UD.svg.png" alt="UD" style="height:28px;vertical-align:middle;margin-right:8px;filter:brightness(1.2)"/>Investigador Financiero</h1>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <nav id="nav">
+    <a href="index.html">Dashboard FinTech</a>
+    <a href="phishing.html">Phishing</a>
+    <a href="detector.html" class="active">Detector</a>
+    <a href="deepfake.html">Deepfake</a>
+    <a href="dashboard.html">Resultados</a>
+  </nav>
+  <span class="tag">Colombia 5.0 🇨🇴</span>
+  <span class="scenario-indicator" id="scenarioTag" style="display:none"></span>
+</div>
+
+<button class="sound-toggle" id="soundBtn" title="Sonido On/Off">🔊</button>
+
+<div class="container">
+
+<!-- Screen: Start -->
+<div class="screen active" id="startScreen">
+  <div class="hero-icon">🕵️</div>
+  <h2 class="hero-title">Conviertete en<br/><span class="accent">Investigador Financiero</span></h2>
+  <p class="hero-sub">Recibiras ofertas de inversion sospechosas. Chatea con los agentes, investiga las pistas y emite tu veredicto: <strong>oportunidad legitima</strong> o <strong>estafa</strong>.</p>
+  <div class="input-group">
+    <label for="playerAlias">Tu alias de investigador</label>
+    <input type="text" id="playerAlias" placeholder="Ej: Detective_Crypto" maxlength="20" autocomplete="off"/>
+  </div>
+  <button class="btn btn-primary" id="startBtn" disabled>Iniciar Mision</button>
+</div>
+
+<!-- Screen: Briefing -->
+<div class="screen" id="briefingScreen">
+  <div class="briefing-card">
+    <h3>Bienvenido a la Unidad de Investigacion Financiera</h3>
+    <p>Has sido reclutado como investigador financiero digital. Tu mision: analizar ofertas de inversion y determinar si son <strong style="color:var(--green)">oportunidades legitimas</strong> o <strong style="color:var(--red)">estafas</strong>.</p>
+    <p>Para cada caso tendras:</p>
+    <ul>
+      <li><strong>Chat con el agente</strong> — Conversa con quien te ofrece la inversion. Hazle preguntas, desafialo, detecta inconsistencias.</li>
+      <li><strong>Herramientas de investigacion</strong> — 5 pistas clasificadas: dominio web, redes sociales, finanzas, regulacion y liquidez.</li>
+      <li><strong>Tu veredicto</strong> — Decide si es estafa o es legitimo basandote en tu investigacion.</li>
+    </ul>
+    <p style="color:var(--amber);font-size:.82rem;margin-top:.5rem">Investigaras 2 casos. Tu intuicion y analisis critico seran clave.</p>
+  </div>
+  <button class="btn btn-primary" id="briefingBtn">Aceptar Mision</button>
+</div>
+
+<!-- Screen: Chat -->
+<div class="screen" id="chatScreen">
+  <div class="chat-container" id="chatContainer">
+    <div class="chat-header" id="chatHeader">
+      <div class="chat-avatar" id="chatAvatar">👤</div>
+      <div>
+        <div class="chat-name" id="chatName">Agente</div>
+        <div class="chat-status">En linea</div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area" id="chatInputArea">
+      <textarea class="chat-input" id="chatInput" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+      <button class="chat-send" id="chatSend" title="Enviar">➤</button>
+    </div>
+    <div class="chat-footer-actions" id="chatFooter" style="display:none">
+      <button class="btn btn-primary btn-sm" id="toInvestBtn">Pasar a Investigacion</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen: Investigation -->
+<div class="screen" id="investScreen">
+  <h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem;text-align:center">Herramientas de Investigacion</h3>
+  <p class="invest-counter" id="investCounter">Toca cada tarjeta para revelar la pista</p>
+  <div class="invest-grid" id="investGrid"></div>
+  <button class="btn btn-primary" id="toVerdictBtn">Emitir Veredicto</button>
+</div>
+
+<!-- Screen: Verdict -->
+<div class="screen" id="verdictScreen">
+  <div class="verdict-card">
+    <div style="font-size:3rem;margin-bottom:.5rem">⚖️</div>
+    <h3>Tu Veredicto</h3>
+    <p id="verdictQuestion">Basandote en tu investigacion, esta oferta es...</p>
+    <div class="verdict-buttons">
+      <button class="btn btn-success" onclick="submitVerdict('legit')">Oportunidad Legitima</button>
+      <button class="btn btn-danger" onclick="submitVerdict('scam')">Es una Estafa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen: Feedback -->
+<div class="screen" id="feedbackScreen">
+  <div class="feedback-panel" id="feedbackPanel">
+    <div class="feedback-result" id="feedbackResult">
+      <div class="icon" id="fbIcon"></div>
+      <h3 id="fbTitle"></h3>
+      <p id="fbSubtitle"></p>
+    </div>
+    <div class="signal-list" id="signalList"></div>
+    <div class="feedback-actions">
+      <button class="btn btn-primary btn-sm" id="fbNextBtn">Siguiente Caso</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen: Results -->
+<div class="screen" id="resultScreen">
+  <div class="result-hero">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-score" id="resultScore"></div>
+    <h2 class="result-title" id="resultTitle"></h2>
+    <p class="result-subtitle" id="resultSubtitle"></p>
+  </div>
+  <div class="firebase-status" id="firebaseStatus"></div>
+  <div class="scenario-summary" id="scenarioSummary"></div>
+  <div class="result-actions">
+    <button class="btn btn-primary" onclick="location.reload()">Jugar de nuevo</button>
+    <button class="btn btn-success" onclick="shareResult()">Compartir</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ========== XSS PREVENTION ==========
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+// ========== FIREBASE CONFIG ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyAt5_tQnV-wxN4QQNbjJb9NPCYBBbIEtWc",
+  authDomain: "colombia50-phishing.firebaseapp.com",
+  databaseURL: "https://colombia50-phishing-default-rtdb.firebaseio.com",
+  projectId: "colombia50-phishing",
+  storageBucket: "colombia50-phishing.firebasestorage.app",
+  messagingSenderId: "969266960746",
+  appId: "1:969266960746:web:28f3f70e39a633d8c22d13",
+  measurementId: "G-GJS899Z0DK"
+};
+let firebaseReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('TU_PROYECTO')) firebaseReady = true;
+} catch(e) { console.warn('Firebase:', e.message); }
+
+// ========== GROQ API (proxied through Vercel serverless) ==========
+const GROQ_URL = '/api/chat';
+
+// ========== SCENARIO DATA ==========
+const SCENARIOS = [
+  {
+    id: 'scenarioA',
+    name: 'McDuck Scrooge Coin',
+    agentName: 'Carlos Martinez',
+    agentRole: 'Asesor de Inversiones — "Soy Mi Propio Jefe"',
+    agentAvatar: '💰',
+    avatarClass: 'scam',
+    isScam: true,
+    correctVerdict: 'scam',
+    systemPrompt: `Eres Carlos Martinez, un vendedor agresivo del programa multinivel "Soy Mi Propio Jefe". Vendes una criptomoneda llamada "McDuck Scrooge Coin" (MSC).
+
+TU PERSONALIDAD:
+- Eres carismático, entusiasta, usas muchos emojis
+- Hablas en español colombiano informal (parcero, hermano, mijo)
+- Eres evasivo ante preguntas técnicas serias
+- Siempre redireccionas a lo emocional: libertad financiera, dejar el empleo, viajar
+
+DATOS DE TU PITCH (debes mencionarlos gradualmente):
+- MSC tiene "presencia fuerte en Asia y África"
+- Hace "donaciones humanitarias" con parte de las ganancias
+- Con $2M COP puedes ganar $14M en 3 meses
+- Dividendos semanales de $466K COP
+- Comparas con Jeff Bezos, Elon Musk: "ellos también empezaron así"
+- Solo quedan 50 cupos en Colombia
+- Bono del 20% extra si decides HOY
+- El programa se llama "Soy Mi Propio Jefe" — la oportunidad de tu vida
+- El token está "respaldado por blockchain avanzada"
+- Refiere a 3 amigos y ganas comisión del 15%
+
+SI TE PREGUNTAN SOBRE:
+- Regulación: "Estamos en proceso" / "la SFC no entiende cripto todavía"
+- Whitepaper: "Te lo mando después, primero asegura tu cupo"
+- Equipo técnico: "Son ingenieros de Silicon Valley, muy privados por seguridad"
+- Auditoría: "Nosotros mismos auditamos el smart contract"
+- Exchanges: "Estamos por entrar a Binance, por eso hay que comprar AHORA"
+
+REGLAS:
+- Responde MÁXIMO en 2-3 oraciones cortas (como un chat de WhatsApp)
+- Nunca rompas el personaje
+- Si te acorralan, cambia de tema a los beneficios emocionales
+- Usa urgencia y FOMO constantemente
+- NUNCA admitas que es estafa`,
+
+    clues: [
+      {
+        id: 'dominio', icon: '🌐', title: 'Dominio Web',
+        hint: 'Toca para verificar el dominio',
+        signal: 'red',
+        content: '<strong>mcduck-scrooge-coin.io</strong><br/>Registrado hace 23 dias. WHOIS anonimo con proxy en Panama. Sin paginas legales (aviso legal, politica de privacidad). Servidor en hosting compartido barato. SSL gratuito de Let\'s Encrypt.',
+        badge: 'ALERTA ROJA'
+      },
+      {
+        id: 'redes', icon: '📱', title: 'Redes Sociales',
+        hint: 'Toca para analizar sus redes',
+        signal: 'red',
+        content: '<strong>Instagram: 15K seguidores</strong><br/>Promedio de 12 likes por post. Comentarios genericos en ingles ("great project!", "to the moon!"). Seguidores comprados: 80% de cuentas sin foto, creadas en los ultimos 30 dias. Sin LinkedIn corporativo.',
+        badge: 'ALERTA ROJA'
+      },
+      {
+        id: 'finanzas', icon: '📊', title: 'Analisis Financiero',
+        hint: 'Toca para ver los numeros',
+        signal: 'red',
+        content: '<strong>Retorno prometido: 600% anual</strong><br/>El S&P 500 promedia 10% anual. Warren Buffett promedia 20%. Un retorno de 600% es matematicamente insostenible. Estructura clasica Ponzi: pagos con dinero de nuevos inversores, no con ganancias reales.',
+        badge: 'ALERTA ROJA'
+      },
+      {
+        id: 'regulacion', icon: '⚖️', title: 'Regulacion',
+        hint: 'Toca para consultar registros',
+        signal: 'red',
+        content: '<strong>Sin registro en la SFC (Colombia)</strong><br/>Sin NIT verificable en DIAN. Sin registro mercantil en Camara de Comercio. Alerta activa de la SEC (USA) contra esquemas similares. No aparece en CoinGecko ni CoinMarketCap.',
+        badge: 'ALERTA ROJA'
+      },
+      {
+        id: 'liquidez', icon: '💧', title: 'Liquidez',
+        hint: 'Toca para verificar mercados',
+        signal: 'red',
+        content: '<strong>Sin presencia en exchanges</strong><br/>No listado en Binance, Coinbase, Kraken ni ningun exchange regulado. Sin pool de liquidez en DEX (Uniswap, PancakeSwap). Volumen de trading: $0. El unico lugar para "comprar" es su propia pagina web.',
+        badge: 'ALERTA ROJA'
+      }
+    ],
+    feedbackSignals: [
+      { color: 'red', text: '<strong>Dominio fraudulento:</strong> Registrado hace 23 dias con datos ocultos en Panama. Los proyectos legitimos tienen dominios verificables.' },
+      { color: 'red', text: '<strong>Seguidores falsos:</strong> 15K seguidores pero solo 12 likes promedio = engagement de 0.08%. Los seguidores son bots comprados.' },
+      { color: 'red', text: '<strong>Retornos insostenibles:</strong> 600% anual es matematicamente un esquema Ponzi. Ni el mejor fondo del mundo genera eso consistentemente.' },
+      { color: 'red', text: '<strong>Sin regulacion:</strong> No esta registrado ante ningun ente regulador. La SFC y la SEC tienen alertas sobre esquemas similares.' },
+      { color: 'red', text: '<strong>Liquidez cero:</strong> No esta en ningun exchange. Si inviertes, no podras vender tu token a nadie.' },
+      { color: 'red', text: '<strong>Tacticas de presion:</strong> "Solo 50 cupos", "bono 20% hoy" — urgencia artificial tipica de esquemas piramidales.' }
+    ]
+  },
+  {
+    id: 'scenarioB',
+    name: 'Wallbit',
+    agentName: 'Maria Lopez',
+    agentRole: 'Representante de Wallbit — Inversiones Globales',
+    agentAvatar: '👩‍💼',
+    avatarClass: 'legit',
+    isScam: false,
+    correctVerdict: 'legit',
+    systemPrompt: `Eres María López, representante comercial de Wallbit, una plataforma real y legítima de inversión que permite a latinoamericanos invertir en acciones de EE.UU.
+
+TU PERSONALIDAD:
+- Profesional, clara, transparente
+- Hablas en español neutro/colombiano formal
+- Respondes preguntas técnicas directamente
+- Nunca prometes retornos garantizados
+- Mencionas riesgos cuando es apropiado
+
+DATOS DE WALLBIT (menciona gradualmente):
+- Plataforma que permite invertir en acciones de NYSE y NASDAQ desde Colombia
+- Usa brokers regulados en EE.UU. (SEC/FINRA)
+- Retornos históricos del mercado: 7-12% anual promedio (sin garantías)
+- KYC obligatorio: cédula, selfie, verificación de identidad
+- Comisiones transparentes: 0.5% por operación
+- Retiros en 2-3 días hábiles
+- Fundada en 2019
+- Tiene oficinas verificables y equipo público
+- NO es criptomoneda, son acciones fraccionarias de empresas reales (Apple, Google, etc.)
+
+SI TE PREGUNTAN SOBRE:
+- Regulación: "Nuestros brokers están registrados en SEC y FINRA. Puedes verificarlo públicamente"
+- Riesgos: "Toda inversión tiene riesgos. El mercado puede bajar. Nunca inviertas dinero que necesites"
+- Retornos: "El S&P 500 ha promediado ~10% anual históricamente, pero no garantizamos nada"
+- Equipo: "Puedes ver nuestro equipo en LinkedIn y nuestra página web"
+- Garantías: "No ofrecemos garantías de retorno. Cualquiera que lo haga te está mintiendo"
+
+REGLAS:
+- Responde MÁXIMO en 2-3 oraciones claras
+- Nunca rompas el personaje
+- Sé honesta sobre riesgos y limitaciones
+- Si te preguntan si son estafa, responde con calma mencionando tu regulación
+- NUNCA prometas retornos garantizados`,
+
+    clues: [
+      {
+        id: 'dominio', icon: '🌐', title: 'Dominio Web',
+        hint: 'Toca para verificar el dominio',
+        signal: 'green',
+        content: '<strong>wallbit.io</strong><br/>Dominio registrado desde 2019. Datos de WHOIS verificables con empresa registrada. Certificado SSL de DigiCert (nivel empresarial). Paginas legales completas: terminos, privacidad, disclaimers de inversion.',
+        badge: 'VERIFICADO'
+      },
+      {
+        id: 'redes', icon: '📱', title: 'Redes Sociales',
+        hint: 'Toca para analizar sus redes',
+        signal: 'green',
+        content: '<strong>Perfiles verificados en LinkedIn, Twitter, Instagram</strong><br/>Equipo fundador con perfiles publicos y trayectoria verificable. Cobertura en Bloomberg Linea, TechCrunch Latam. Engagement real con usuarios reales que hacen preguntas y reciben respuestas.',
+        badge: 'VERIFICADO'
+      },
+      {
+        id: 'finanzas', icon: '📊', title: 'Analisis Financiero',
+        hint: 'Toca para ver los numeros',
+        signal: 'green',
+        content: '<strong>Retornos historicos: 7-12% anual (mercado USA)</strong><br/>No prometen retornos garantizados. Disclaimers visibles: "Invertir conlleva riesgos. Rentabilidades pasadas no garantizan futuras." Comisiones claras publicadas: 0.5% por operacion.',
+        badge: 'REALISTA'
+      },
+      {
+        id: 'regulacion', icon: '⚖️', title: 'Regulacion',
+        hint: 'Toca para consultar registros',
+        signal: 'green',
+        content: '<strong>Brokers regulados por SEC y FINRA</strong><br/>Verificable en BrokerCheck de FINRA. Empresa registrada con NIT y Camara de Comercio. Cumple normativas KYC/AML (anti-lavado). Opera bajo supervision regulatoria en los mercados donde actua.',
+        badge: 'REGULADO'
+      },
+      {
+        id: 'liquidez', icon: '💧', title: 'Liquidez',
+        hint: 'Toca para verificar mercados',
+        signal: 'amber',
+        content: '<strong>Acciones listadas en NYSE y NASDAQ</strong><br/>Inviertes en acciones reales (Apple, Tesla, Google) a traves de acciones fraccionarias. Retiros en 2-3 dias habiles a tu cuenta bancaria colombiana. Tiempo de retiro estandar para la industria.',
+        badge: 'NORMAL INDUSTRIA'
+      }
+    ],
+    feedbackSignals: [
+      { color: 'green', text: '<strong>Dominio verificable:</strong> Registrado desde 2019 con datos publicos y certificado SSL empresarial. Transparencia total.' },
+      { color: 'green', text: '<strong>Equipo publico:</strong> Fundadores y equipo verificables en LinkedIn. Cobertura en medios financieros reconocidos.' },
+      { color: 'green', text: '<strong>Retornos realistas:</strong> 7-12% anual historico con disclaimers claros. No prometen ganancias garantizadas — senal de honestidad.' },
+      { color: 'green', text: '<strong>Regulacion comprobable:</strong> Brokers registrados en SEC/FINRA, verificable publicamente. Cumple KYC/AML.' },
+      { color: 'amber', text: '<strong>Liquidez normal:</strong> Retiros en 2-3 dias habiles es estandar en la industria de brokers internacionales. No es instantaneo pero es normal.' },
+      { color: 'green', text: '<strong>Sin presion:</strong> No hay urgencia artificial, ni bonos por decidir "hoy", ni esquemas de referidos con comisiones.' }
+    ]
+  }
+];
+
+// ========== GAME STATE ==========
+let playerAlias = '';
+let currentScenarioIdx = 0;
+let scenarioResults = [];
+let cluesRevealed = 0;
+let gameStartTime = 0;
+let chatHistory = []; // for Groq context
+let soundOn = true;
+let userMsgCount = 0;
+
+// ========== AUDIO ==========
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  if (!soundOn) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    gain.gain.value = 0.1;
+    if (type === 'correct') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'msg') {
+      osc.type = 'sine'; osc.frequency.value = 600;
+      gain.gain.value = 0.06;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'reveal') {
+      osc.type = 'triangle'; osc.frequency.value = 440;
+      osc.frequency.setValueAtTime(520, audioCtx.currentTime + 0.05);
+      gain.gain.value = 0.08;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+  } catch(e) {}
+}
+
+// ========== DOM ==========
+const $ = id => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ========== START ==========
+const aliasInput = $('playerAlias');
+const startBtn = $('startBtn');
+aliasInput.addEventListener('input', () => { startBtn.disabled = aliasInput.value.trim().length < 2; });
+aliasInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !startBtn.disabled) startGame(); });
+startBtn.addEventListener('click', startGame);
+
+$('soundBtn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  $('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn && audioCtx.state === 'suspended') audioCtx.resume();
+});
+
+function startGame() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playerAlias = aliasInput.value.trim();
+  currentScenarioIdx = 0;
+  scenarioResults = [];
+  gameStartTime = Date.now();
+  showScreen('briefingScreen');
+  gsap.fromTo('.briefing-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+}
+
+$('briefingBtn').addEventListener('click', () => { startScenario(); });
+
+// ========== SCENARIO FLOW ==========
+function currentScenario() { return SCENARIOS[currentScenarioIdx]; }
+
+function startScenario() {
+  const s = currentScenario();
+  $('scenarioTag').style.display = 'inline-block';
+  $('scenarioTag').textContent = 'Caso ' + (currentScenarioIdx + 1) + '/2: ' + s.name;
+  chatHistory = [];
+  userMsgCount = 0;
+  cluesRevealed = 0;
+  initChat(s);
+  showScreen('chatScreen');
+}
+
+// ========== CHAT ==========
+function initChat(scenario) {
+  const msgs = $('chatMessages');
+  msgs.innerHTML = '';
+  $('chatHeader').querySelector('.chat-avatar').className = 'chat-avatar ' + scenario.avatarClass;
+  $('chatHeader').querySelector('.chat-avatar').textContent = scenario.agentAvatar;
+  $('chatName').textContent = scenario.agentName;
+  $('chatInputArea').style.display = 'flex';
+  $('chatFooter').style.display = 'none';
+  $('chatInput').value = '';
+  $('chatInput').disabled = false;
+  $('chatSend').disabled = false;
+
+  // System message
+  addSystemMsg('Caso ' + (currentScenarioIdx + 1) + ': ' + scenario.name + ' — Investiga esta oferta');
+
+  // Initial AI greeting
+  chatHistory = [{ role: 'system', content: scenario.systemPrompt }];
+
+  const introPrompt = currentScenarioIdx === 0
+    ? 'El usuario acaba de conectarse al chat. Preséntate brevemente y hazle tu pitch inicial sobre McDuck Scrooge Coin. Sé entusiasta y directo. Máximo 3 oraciones.'
+    : 'El usuario acaba de conectarse al chat. Preséntate brevemente y explica qué es Wallbit y cómo pueden invertir desde Colombia. Sé profesional. Máximo 3 oraciones.';
+
+  sendToGroq(introPrompt, true);
+}
+
+function addMsg(text, type) {
+  const msgs = $('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  playSound('msg');
+}
+
+function addSystemMsg(text) {
+  const msgs = $('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = $('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const el = $('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendToGroq(userText, isIntro) {
+  if (!isIntro) {
+    chatHistory.push({ role: 'user', content: userText });
+  } else {
+    chatHistory.push({ role: 'user', content: userText });
+  }
+
+  showTyping();
+  $('chatSend').disabled = true;
+  $('chatInput').disabled = true;
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory })
+    });
+
+    if (!res.ok) throw new Error('API error: ' + res.status);
+    const data = await res.json();
+    const reply = data.choices[0].message.content.trim();
+
+    // Simulate natural typing delay
+    const typingDelay = Math.min(800 + reply.length * 15, 2500);
+    await delay(typingDelay);
+
+    removeTyping();
+    chatHistory.push({ role: 'assistant', content: reply });
+    addMsg(escapeHtml(reply), 'agent');
+
+  } catch (err) {
+    console.error('Groq error:', err);
+    removeTyping();
+    // Fallback: use predefined response
+    const fallback = getFallbackResponse();
+    chatHistory.push({ role: 'assistant', content: fallback });
+    addMsg(escapeHtml(fallback), 'agent');
+  }
+
+  $('chatSend').disabled = false;
+  $('chatInput').disabled = false;
+  $('chatInput').focus();
+
+  // Show "proceed to investigation" button after 2+ user messages
+  if (userMsgCount >= 2) {
+    $('chatFooter').style.display = 'flex';
+  }
+}
+
+function getFallbackResponse() {
+  const s = currentScenario();
+  if (s.isScam) {
+    const fallbacks = [
+      'Hermano, esta es LA oportunidad. Con $2M COP puedes generar $14M en solo 3 meses. Los numeros no mienten! Solo quedan pocos cupos.',
+      'Mira, Jeff Bezos empezo desde un garaje. Nosotros te damos la herramienta para tu libertad financiera. No dejes pasar esto!',
+      'El token MSC esta respaldado por blockchain avanzada. Nuestro equipo de Silicon Valley lo ha verificado todo. Es 100% seguro.'
+    ];
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  } else {
+    const fallbacks = [
+      'En Wallbit puedes invertir en acciones de Apple, Google, Tesla desde Colombia. Nuestros brokers estan regulados por la SEC y FINRA.',
+      'Los retornos historicos del S&P 500 promedian 10% anual, pero no garantizamos nada. Toda inversion conlleva riesgos.',
+      'Requerimos verificacion KYC completa: cedula y selfie. Las comisiones son 0.5% por operacion, todo transparente en nuestra web.'
+    ];
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
+}
+
+// Chat input handlers
+$('chatSend').addEventListener('click', handleChatSend);
+$('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); }
+});
+
+// Auto-resize textarea
+$('chatInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+function handleChatSend() {
+  const input = $('chatInput');
+  const text = input.value.trim();
+  if (!text || $('chatSend').disabled) return;
+
+  addMsg(escapeHtml(text), 'user');
+  input.value = '';
+  input.style.height = 'auto';
+  userMsgCount++;
+  sendToGroq(text, false);
+}
+
+$('toInvestBtn').addEventListener('click', () => {
+  addSystemMsg('Pasando a fase de investigacion...');
+  setTimeout(() => { showInvestigation(); }, 500);
+});
+
+// ========== INVESTIGATION ==========
+function showInvestigation() {
+  const s = currentScenario();
+  const grid = $('investGrid');
+  grid.innerHTML = '';
+  cluesRevealed = 0;
+  updateInvestCounter();
+
+  s.clues.forEach((clue, i) => {
+    const card = document.createElement('div');
+    card.className = 'invest-card' + (i === s.clues.length - 1 && s.clues.length % 2 !== 0 ? ' full-width' : '');
+    card.innerHTML = `
+      <div class="card-icon">${clue.icon}</div>
+      <div class="card-title">${escapeHtml(clue.title)}</div>
+      <div class="card-hint">${escapeHtml(clue.hint)}</div>
+      <div class="card-preview"></div>
+    `;
+    card.addEventListener('click', () => revealClue(card, clue));
+    grid.appendChild(card);
+
+    gsap.fromTo(card, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, delay: 0.08 * i, ease: 'power2.out' });
+  });
+
+  showScreen('investScreen');
+}
+
+function revealClue(card, clue) {
+  if (card.classList.contains('revealed')) return;
+  card.classList.add('revealed');
+
+  const signalColor = clue.signal === 'red' ? 'var(--red)' : clue.signal === 'green' ? 'var(--green)' : 'var(--amber)';
+  card.style.setProperty('--signal-color', signalColor);
+
+  const preview = card.querySelector('.card-preview');
+  preview.innerHTML = clue.content + '<br/><span class="signal-badge ' + clue.signal + '">' + clue.badge + '</span>';
+
+  cluesRevealed++;
+  updateInvestCounter();
+  playSound('reveal');
+
+  gsap.fromTo(preview, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+}
+
+function updateInvestCounter() {
+  const total = currentScenario().clues.length;
+  $('investCounter').textContent = cluesRevealed + '/' + total + ' pistas reveladas';
+}
+
+$('toVerdictBtn').addEventListener('click', () => {
+  showScreen('verdictScreen');
+  $('verdictQuestion').innerHTML = 'Basandote en tu investigacion sobre <strong>' + escapeHtml(currentScenario().name) + '</strong>, esta oferta es...';
+  gsap.fromTo('.verdict-card', { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' });
+});
+
+// ========== VERDICT ==========
+function submitVerdict(verdict) {
+  const s = currentScenario();
+  const correct = verdict === s.correctVerdict;
+
+  scenarioResults.push({
+    scenarioId: s.id,
+    scenarioName: s.name,
+    isScam: s.isScam,
+    verdict: verdict,
+    correct: correct,
+    cluesRevealed: cluesRevealed,
+    cluesTotal: s.clues.length,
+    chatMessages: userMsgCount
+  });
+
+  showFeedback(s, correct);
+  playSound(correct ? 'correct' : 'wrong');
+  window.haptics?.trigger(correct ? 'success' : 'error');
+}
+
+// ========== FEEDBACK ==========
+function showFeedback(scenario, correct) {
+  const result = $('feedbackResult');
+  result.className = 'feedback-result ' + (correct ? 'correct' : 'wrong');
+
+  $('fbIcon').textContent = correct ? '✅' : '❌';
+  $('fbTitle').textContent = correct
+    ? (scenario.isScam ? 'Correcto! Es una estafa' : 'Correcto! Es legitimo')
+    : (scenario.isScam ? 'Incorrecto — Era una estafa' : 'Incorrecto — Era legitimo');
+  $('fbSubtitle').textContent = correct
+    ? 'Tu instinto de investigador es solido. Aqui estan las senales clave:'
+    : 'No te preocupes, lo importante es aprender. Estas son las senales que debiste notar:';
+
+  const list = $('signalList');
+  list.innerHTML = '';
+  scenario.feedbackSignals.forEach((sig, i) => {
+    const item = document.createElement('div');
+    item.className = 'signal-item';
+    item.innerHTML = '<div class="signal-dot ' + sig.color + '"></div><div class="signal-text">' + sig.text + '</div>';
+    list.appendChild(item);
+    gsap.fromTo(item, { x: -15, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, delay: 0.06 * i, ease: 'power2.out' });
+  });
+
+  const nextBtn = $('fbNextBtn');
+  if (currentScenarioIdx < SCENARIOS.length - 1) {
+    nextBtn.textContent = 'Siguiente Caso →';
+    nextBtn.onclick = () => { currentScenarioIdx++; startScenario(); };
+  } else {
+    nextBtn.textContent = 'Ver Resultados Finales →';
+    nextBtn.onclick = showResults;
+  }
+
+  showScreen('feedbackScreen');
+  gsap.fromTo('#feedbackPanel', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+}
+
+// ========== RESULTS ==========
+function showResults() {
+  confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+  setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { y: 0.5 } }), 250);
+  window.haptics?.trigger('success');
+  $('scenarioTag').style.display = 'none';
+  const totalCorrect = scenarioResults.filter(r => r.correct).length;
+  const totalScenarios = SCENARIOS.length;
+  const pct = Math.round((totalCorrect / totalScenarios) * 100);
+  const totalSecs = Math.round((Date.now() - gameStartTime) / 1000);
+
+  let icon, title, subtitle;
+  if (pct === 100) {
+    icon = '🏆'; title = 'Investigador Experto';
+    subtitle = 'Identificaste correctamente todos los casos. Excelente ojo critico!';
+  } else if (pct >= 50) {
+    icon = '🔍'; title = 'Investigador en Formacion';
+    subtitle = 'Acertaste en uno de los casos. Sigue afinando tu analisis!';
+  } else {
+    icon = '📚'; title = 'Aprendiz de Investigador';
+    subtitle = 'No acertaste esta vez, pero ahora conoces las senales de alerta!';
+  }
+
+  $('resultIcon').textContent = icon;
+  $('resultTitle').textContent = title;
+  $('resultSubtitle').textContent = escapeHtml(playerAlias) + ', ' + subtitle;
+
+  const scoreEl = $('resultScore');
+  scoreEl.textContent = '0/' + totalScenarios;
+  gsap.to({ val: 0 }, {
+    val: totalCorrect, duration: 1, ease: 'power2.out',
+    onUpdate: function() { scoreEl.textContent = Math.round(this.targets()[0].val) + '/' + totalScenarios; }
+  });
+
+  // Scenario summary
+  const summary = $('scenarioSummary');
+  summary.innerHTML = '';
+  scenarioResults.forEach((r, i) => {
+    const item = document.createElement('div');
+    item.className = 'scenario-summary-item';
+    item.innerHTML = `
+      <span class="s-icon">${r.isScam ? '🚨' : '✅'}</span>
+      <span class="s-name">${escapeHtml(r.scenarioName)}</span>
+      <span class="s-result ${r.correct ? 'ok' : 'fail'}">${r.correct ? 'CORRECTO' : 'INCORRECTO'}</span>
+    `;
+    summary.appendChild(item);
+    gsap.fromTo(item, { x: -20, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, delay: 0.1 * i, ease: 'power2.out' });
+  });
+
+  showScreen('resultScreen');
+  gsap.fromTo('.result-hero', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' });
+
+  sendToFirebase(totalCorrect, totalScenarios, pct, totalSecs);
+}
+
+// ========== FIREBASE ==========
+function sendToFirebase(score, total, pct, timeSecs) {
+  const statusEl = $('firebaseStatus');
+  if (!firebaseReady) {
+    statusEl.textContent = 'Firebase no configurado — resultados solo locales';
+    statusEl.className = 'firebase-status';
+    return;
+  }
+
+  const SESSION_ID = localStorage.getItem('fintech_session') || 'workshop-2026';
+  const safeAlias = playerAlias.replace(/[.#$[\]\/]/g, '_').substring(0, 20);
+
+  const scenarioData = {};
+  scenarioResults.forEach(r => {
+    scenarioData[r.scenarioId] = {
+      name: r.scenarioName,
+      isScam: r.isScam,
+      verdict: r.verdict,
+      correct: r.correct,
+      cluesRevealed: r.cluesRevealed,
+      cluesTotal: r.cluesTotal,
+      chatMessages: r.chatMessages
+    };
+  });
+
+  const payload = {
+    alias: escapeHtml(playerAlias),
+    detectorScore: score,
+    detectorTotal: total,
+    detectorPct: pct,
+    detectorTime: timeSecs,
+    detectorScenarios: scenarioData,
+    detectorTimestamp: firebase.database.ServerValue.TIMESTAMP,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  const ref = firebase.database().ref('sessions/' + SESSION_ID + '/results/' + safeAlias);
+  ref.update(payload)
+    .then(() => {
+      statusEl.textContent = '✓ Resultado enviado al dashboard en vivo';
+      statusEl.className = 'firebase-status success';
+    })
+    .catch(err => {
+      statusEl.textContent = 'Error enviando resultado: ' + err.message;
+      statusEl.className = 'firebase-status error';
+    });
+}
+
+// ========== SHARE ==========
+function shareResult() {
+  const totalCorrect = scenarioResults.filter(r => r.correct).length;
+  const pct = Math.round((totalCorrect / SCENARIOS.length) * 100);
+  let title;
+  if (pct === 100) title = 'Investigador Experto';
+  else if (pct >= 50) title = 'Investigador en Formacion';
+  else title = 'Aprendiz de Investigador';
+
+  const text = '🕵️ Investigador Financiero\n' +
+    'Obtuve ' + totalCorrect + '/' + SCENARIOS.length + ' (' + pct + '%) — ' + title + '\n' +
+    'Taller Colombia 5.0 🇨🇴\n' +
+    '#Colombia50 #FinTech #InvestigadorFinanciero';
+
+  if (navigator.share) {
+    navigator.share({ title: 'Investigador Financiero', text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.result-actions button:last-child');
+      const orig = btn.textContent;
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = orig, 2000);
+    }).catch(() => {});
+  }
+}
+
+// === HAMBURGER MENU ===
+const hamburgerBtn = document.getElementById('hamburger');
+const navEl = document.getElementById('nav');
+hamburgerBtn.addEventListener('click', () => {
+  hamburgerBtn.classList.toggle('open');
+  navEl.classList.toggle('open');
+});
+</script>
+<script type="module">
+  import WebHaptics from 'https://cdn.jsdelivr.net/npm/web-haptics@0.0.6/+esm';
+  try { window.haptics = new WebHaptics(); } catch(e) { window.haptics = null; }
+</script>
+</body>
+</html>

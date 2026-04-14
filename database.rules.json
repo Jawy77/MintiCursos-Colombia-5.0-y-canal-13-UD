@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "sessions": {
+      "$sessionId": {
+        "meta": {
+          ".read": true,
+          ".write": "auth != null && auth.token.email === 'jawy.romero@mantishield.xyz'"
+        },
+        "results": {
+          ".read": true,
+          "$alias": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['alias', 'timestamp']) && newData.child('alias').isString() && newData.child('alias').val().length <= 40 && (!newData.hasChild('phishingPct') || (newData.child('phishingPct').isNumber() && newData.child('phishingPct').val() >= 0 && newData.child('phishingPct').val() <= 100)) && (!newData.hasChild('detectorPct') || (newData.child('detectorPct').isNumber() && newData.child('detectorPct').val() >= 0 && newData.child('detectorPct').val() <= 100)) && (!newData.hasChild('deepfakePct') || (newData.child('deepfakePct').isNumber() && newData.child('deepfakePct').val() >= 0 && newData.child('deepfakePct').val() <= 100))"
+          }
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
