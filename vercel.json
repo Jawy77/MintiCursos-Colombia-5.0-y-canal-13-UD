@@ -1,12 +1,9 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/deepfake", "dest": "/deepfake.html" },
-    { "src": "/detector", "dest": "/detector.html" },
-    { "src": "/phishing", "dest": "/phishing.html" },
-    { "src": "/dashboard", "dest": "/dashboard.html" },
-    { "src": "/", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/deepfake", "destination": "/deepfake.html" },
+    { "source": "/detector", "destination": "/detector.html" },
+    { "source": "/phishing", "destination": "/phishing.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
   ],
   "headers": [
     {
