@@ -574,6 +574,11 @@ function loadTeams() {
 
     updateTeamInfo();
     startListening();
+  }, error => {
+    console.error('Error loading teams:', error);
+    $('connDot').className = 'conn-dot err';
+    $('connText').textContent = 'Error lectura: ' + error.message;
+    alert('Error al cargar equipos: ' + error.message + '\nVerifica las reglas de Firebase.');
   });
 }
 
@@ -606,14 +611,20 @@ newTeamBtn.addEventListener('click', () => {
 });
 
 function createTeam(teamId, name) {
-  if (!firebaseReady) return;
+  if (!firebaseReady) { alert('Firebase no esta listo'); return; }
+  const user = firebase.auth().currentUser;
+  if (!user) { alert('Debes iniciar sesion primero'); return; }
+  console.log('Creating team:', teamId, 'as user:', user.email);
   firebase.database().ref('sessions/' + teamId + '/meta').set({
     name: name,
     createdAt: firebase.database.ServerValue.TIMESTAMP
   }).then(() => {
     currentSession = teamId;
     localStorage.setItem('fintech_session', currentSession);
-    // loadTeams will refresh via the listener
+    console.log('Team created OK:', teamId);
+  }).catch(err => {
+    console.error('Error creating team:', err);
+    alert('Error al crear equipo: ' + err.message + '\nVerifica las reglas de Firebase.');
   });
 }
 
