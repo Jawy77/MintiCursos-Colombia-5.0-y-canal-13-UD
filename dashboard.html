@@ -447,7 +447,31 @@ body::before{
 </div>
 
 <script>
-// ========== AUTH ==========
+// ========== XSS PREVENTION ==========
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+// ========== FIREBASE CONFIG (must be first) ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyAt5_tQnV-wxN4QQNbjJb9NPCYBBbIEtWc",
+  authDomain: "colombia50-phishing.firebaseapp.com",
+  databaseURL: "https://colombia50-phishing-default-rtdb.firebaseio.com",
+  projectId: "colombia50-phishing",
+  storageBucket: "colombia50-phishing.firebasestorage.app",
+  messagingSenderId: "969266960746",
+  appId: "1:969266960746:web:28f3f70e39a633d8c22d13",
+  measurementId: "G-GJS899Z0DK"
+};
+let firebaseReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('TU_PROYECTO')) firebaseReady = true;
+} catch(e) { console.warn('Firebase:', e.message); }
+
+// ========== AUTH (after Firebase init) ==========
 const ALLOWED_EMAILS = ['jawy.romero@mantishield.xyz'];
 let isAuthenticated = false;
 
@@ -505,30 +529,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   try { await firebase.auth().signOut(); } catch(e) {}
   location.reload();
 });
-
-// ========== XSS PREVENTION ==========
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.appendChild(document.createTextNode(str));
-  return d.innerHTML;
-}
-
-// ========== FIREBASE CONFIG ==========
-const firebaseConfig = {
-  apiKey: "AIzaSyAt5_tQnV-wxN4QQNbjJb9NPCYBBbIEtWc",
-  authDomain: "colombia50-phishing.firebaseapp.com",
-  databaseURL: "https://colombia50-phishing-default-rtdb.firebaseio.com",
-  projectId: "colombia50-phishing",
-  storageBucket: "colombia50-phishing.firebasestorage.app",
-  messagingSenderId: "969266960746",
-  appId: "1:969266960746:web:28f3f70e39a633d8c22d13",
-  measurementId: "G-GJS899Z0DK"
-};
-let firebaseReady = false;
-try {
-  firebase.initializeApp(firebaseConfig);
-  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('TU_PROYECTO')) firebaseReady = true;
-} catch(e) { console.warn('Firebase:', e.message); }
 
 const $ = id => document.getElementById(id);
 
